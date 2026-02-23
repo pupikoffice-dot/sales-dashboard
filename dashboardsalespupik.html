@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sales Dashboard — Pupik &amp; Grow</title>
+<style>
+/* ── Reset & Variables ── */
+:root {
+  --bg: #0f1117;
+  --sur: #1a1d27;
+  --sur2: #22263a;
+  --bdr: #2e3350;
+  --acc: #4f7ef8;
+  --acc2: #7c3aed;
+  --txt: #e8eaf6;
+  --muted: #7b82a8;
+  --grn: #22c55e;
+  --red: #ef4444;
+  --grn-bg: rgba(34,197,94,.13);
+  --red-bg: rgba(239,68,68,.13);
+  --r: 10px;
+  --sidebar: 300px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--txt); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; font-size: 14px; }
+
+/* ── Header ── */
+header {
+  background: var(--sur);
+  border-bottom: 1px solid var(--bdr);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { font-size: 1.2rem; font-weight: 700; }
+.sub { color: var(--muted); font-size: .78rem; }
+.hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.data-badge { background: var(--sur2); border: 1px solid var(--bdr); border-radius: 20px; padding: 3px 14px; font-size: .72rem; color: var(--muted); }
+.data-badge b { color: var(--acc); }
+
+/* ── Layout ── */
+.shell { display: flex; min-height: calc(100vh - 53px); }
+
+/* ── Sidebar ── */
+aside {
+  width: var(--sidebar);
+  background: var(--sur);
+  border-right: 1px solid var(--bdr);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  height: calc(100vh - 53px);
+  position: sticky;
+  top: 53px;
+}
+.panel {
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 12px;
+}
+.panel-title {
+  font-size: .63rem;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.btn-grp { display: flex; flex-direction: column; gap: 6px; }
+.btn {
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  color: var(--txt);
+  border-radius: 7px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: .83rem;
+  text-align: left;
+  transition: all .13s;
+  width: 100%;
+}
+.btn:hover:not(:disabled) { border-color: var(--acc); color: var(--acc); }
+.btn.active { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── Date filter ── */
+.tab-row { display: flex; gap: 5px; margin-bottom: 10px; }
+.tab-btn {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 5px;
+  cursor: pointer;
+  font-size: .75rem;
+  text-align: center;
+  transition: all .12s;
+}
+.tab-btn.active { background: var(--acc); border-color: var(--acc); color: #fff; }
+.date-range { display: flex; flex-direction: column; gap: 7px; }
+.date-range label { font-size: .73rem; color: var(--muted); }
+.date-range input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--txt);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: .8rem;
+}
+.date-range input:focus { outline: none; border-color: var(--acc); }
+.months-picker { display: none; flex-direction: column; gap: 7px; }
+.months-picker.active { display: flex; }
+.yr-row { display: flex; gap: 5px; margin-bottom: 4px; }
+.yr-btn {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: .7rem;
+  cursor: pointer;
+}
+.yr-btn:hover { color: var(--acc); border-color: var(--acc); }
+.mo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.mo-btn {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 5px;
+  padding: 5px 3px;
+  font-size: .7rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all .11s;
+}
+.mo-btn.sel { background: var(--acc); border-color: var(--acc); color: #fff; }
+.sel-months-list { font-size: .68rem; color: var(--muted); min-height: 16px; }
+
+/* ── Checkbox list ── */
+.srch {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--txt);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: .8rem;
+  margin-bottom: 6px;
+}
+.srch:focus { outline: none; border-color: var(--acc); }
+.mini-row { display: flex; gap: 5px; margin-bottom: 6px; }
+.mini {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: .7rem;
+  cursor: pointer;
+}
+.mini:hover { color: var(--acc); border-color: var(--acc); }
+.chk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.chk-list::-webkit-scrollbar { width: 3px; }
+.chk-list::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 3px; }
+label.ck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .79rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  transition: all .1s;
+}
+label.ck:hover { background: var(--bg); border-color: var(--bdr); }
+label.ck input { accent-color: var(--acc); width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ── Apply button ── */
+.apply-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--acc), var(--acc2));
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 11px;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 700;
+  transition: opacity .13s;
+  margin-top: 4px;
+}
+.apply-btn:hover:not(:disabled) { opacity: .87; }
+.apply-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── Main content ── */
+main { flex: 1; padding: 22px 24px; overflow-y: auto; }
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding: 60px 20px;
+}
+.welcome .ic { font-size: 3rem; }
+.welcome h2 { font-size: 1.2rem; color: var(--txt); }
+.welcome p { font-size: .85rem; line-height: 1.7; max-width: 420px; }
+.welcome code {
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: .82rem;
+  color: var(--acc);
+}
+
+/* ── Status bar ── */
+.sbar {
+  background: var(--sur);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 16px;
+  font-size: .77rem;
+  color: var(--muted);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sbar b { color: var(--txt); }
+.sbar-legend { margin-left: auto; display: flex; gap: 10px; font-size: .72rem; }
+.leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+
+/* ── Tables ── */
+.section { margin-bottom: 28px; }
+.section-title {
+  font-size: .88rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tw { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bdr); }
+table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+thead th {
+  background: var(--sur2);
+  padding: 9px 12px;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .72rem;
+  letter-spacing: .4px;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--bdr);
+}
+thead th:first-child, thead th:nth-child(2) { text-align: left; }
+tbody tr { border-bottom: 1px solid var(--bdr); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(79,126,248,.05); }
+tbody td { padding: 7px 12px; text-align: right; white-space: nowrap; }
+tbody td:first-child { text-align: left; color: var(--muted); font-size: .74rem; }
+tbody td:nth-child(2) { text-align: left; color: var(--txt); font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+tfoot td {
+  background: var(--sur2);
+  font-weight: 700;
+  padding: 9px 12px;
+  border-top: 2px solid var(--bdr);
+  text-align: right;
+  font-size: .8rem;
+}
+tfoot td:first-child, tfoot td:nth-child(2) { text-align: left; }
+.cg { color: var(--grn) !important; }
+.cr { color: var(--red) !important; }
+.cm { color: var(--muted); }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--txt); }
+.si { font-size: .65em; opacity: .5; margin-left: 3px; }
+input[type="date"] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--txt);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: .8rem;
+  color-scheme: dark;
+}
+input[type="date"]:focus { outline: none; border-color: var(--acc); }
+.dl-bar { display: flex; justify-content: flex-end; gap: 6px; margin: 8px 0 4px; }
+.dl-btn {
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 13px;
+  font-size: .74rem;
+  cursor: pointer;
+}
+.dl-btn:hover { color: var(--acc); border-color: var(--acc); }
+/* ── Chart button in status bar ── */
+.sbar-chart-btn {
+  margin-left: auto;
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  color: var(--acc);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: .74rem;
+  cursor: pointer;
+  transition: all .13s;
+  white-space: nowrap;
+}
+.sbar-chart-btn:hover { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+/* ── Pie chart modal ── */
+.pie-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.68);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.pie-modal {
+  background: var(--sur);
+  border: 1px solid var(--bdr);
+  border-radius: 14px;
+  width: min(1080px, 95vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+.pie-modal-hdr {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bdr);
+  font-weight: 700;
+  font-size: .92rem;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.pie-modal-sub { font-size: .74rem; color: var(--muted); font-weight: 400; }
+.pie-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 5px;
+  line-height: 1;
+}
+.pie-close:hover { color: var(--txt); background: var(--bdr); }
+.pie-modal-body {
+  display: flex;
+  gap: 28px;
+  padding: 22px;
+  overflow-y: auto;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.pie-chart-side { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+.pie-canvas-wrap { width: 390px; height: 390px; }
+.pie-total-lbl { font-size: .75rem; color: var(--muted); text-align: center; }
+.pie-total-lbl b { color: var(--txt); font-size: .88rem; }
+.pie-table-side { flex: 1; min-width: 220px; }
+.pie-tbl { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.pie-tbl thead th {
+  background: var(--sur2);
+  padding: 8px 10px;
+  text-align: left;
+  color: var(--muted);
+  font-size: .71rem;
+  font-weight: 600;
+  border-bottom: 2px solid var(--bdr);
+  white-space: nowrap;
+}
+.pie-tbl tbody tr { border-bottom: 1px solid var(--bdr); transition: background .1s; }
+.pie-tbl tbody tr:hover { background: rgba(79,126,248,.05); }
+.pie-tbl tbody tr:last-child { border-bottom: none; }
+.pie-tbl tbody td { padding: 7px 10px; }
+.pie-tbl tbody td:first-child { color: var(--muted); text-align: center; width: 28px; font-size: .72rem; }
+.pie-tbl tfoot td { padding: 8px 10px; border-top: 2px solid var(--bdr); font-weight: 700; background: var(--sur2); font-size: .8rem; }
+.pie-dot-sm { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+
+/* ── Spinner ── */
+.spin-wrap { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--muted); gap: 10px; font-size: .85rem; }
+.spin { width: 20px; height: 20px; border: 3px solid var(--bdr); border-top-color: var(--acc); border-radius: 50%; animation: sp .7s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* ── Error / Info ── */
+.err {
+  background: rgba(127,29,29,.25);
+  border: 1px solid rgba(239,68,68,.35);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  color: #fca5a5;
+  font-size: .83rem;
+  margin-bottom: 12px;
+}
+.info {
+  background: rgba(79,126,248,.1);
+  border: 1px solid rgba(79,126,248,.25);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  color: #93b4fd;
+  font-size: .82rem;
+  line-height: 1.65;
+}
+.warn {
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.35);
+  border-radius: var(--r);
+  padding: 10px 15px;
+  color: #fcd34d;
+  font-size: .8rem;
+  margin-bottom: 10px;
+}
+
+/* ── Disabled panel overlay ── */
+.disabled { opacity: .35; pointer-events: none; }
+
+/* ── Collapse toggle ── */
+.section-title {
+  cursor: pointer;
+  user-select: none;
+}
+.section-title:hover { background: var(--sur2); filter: brightness(1.1); }
+.collapse-icon {
+  margin-left: auto;
+  font-size: .75rem;
+  color: var(--muted);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.section.collapsed .collapse-icon { transform: rotate(-90deg); }
+.section-body { }
+.section.collapsed .section-body { display: none; }
+
+/* ── Sum-only row shown when collapsed ── */
+.section-sum {
+  display: none;
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: .8rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.section-sum b { color: var(--txt); }
+.section.collapsed .section-sum { display: flex; gap: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════ -->
+<header>
+  <div>
+    <h1>📊 Sales Dashboard</h1>
+    <div class="sub">Pupik · Grow</div>
+  </div>
+  <div class="hdr-right">
+    <div class="data-badge" id="dataBadge">No data loaded</div>
+  </div>
+</header>
+
+<!-- ══ SHELL ═══════════════════════════════════════════════ -->
+<div class="shell">
+
+<!-- ══ SIDEBAR ═════════════════════════════════════════════ -->
+<aside>
+
+  <!-- ① Company -->
+  <div class="panel">
+    <div class="panel-title">① Company</div>
+    <div class="btn-grp">
+      <button class="btn" id="bPupik" onclick="selCo('pupik')">🏢 Pupik</button>
+      <button class="btn" id="bGrow"  onclick="selCo('grow')">🌱 Grow</button>
+    </div>
+  </div>
+
+  <!-- ② Date -->
+  <div class="panel disabled" id="pDate">
+    <div class="panel-title">② Date Filter</div>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tRange" onclick="setDateMode('range')">From / To</button>
+      <button class="tab-btn"        id="tMonths" onclick="setDateMode('months')">Months</button>
+    </div>
+
+    <!-- Range mode -->
+    <div class="date-range" id="rangeInputs">
+      <label>From</label>
+      <input type="date" id="dateFrom" min="2025-01-01" max="2026-12-31"
+             onchange="onDateChg()"/>
+      <label>To</label>
+      <input type="date" id="dateTo" min="2025-01-01" max="2026-12-31"
+             onchange="onDateChg()"/>
+    </div>
+
+    <!-- Months mode -->
+    <div class="months-picker" id="monthsPicker">
+      <div class="yr-row">
+        <button class="yr-btn" onclick="yearBtn(2025)">2025</button>
+        <button class="yr-btn" onclick="yearBtn(2026)">2026</button>
+        <button class="yr-btn" onclick="clearMonths()">Clear</button>
+      </div>
+      <div id="mo2026">
+        <div style="font-size:.67rem;color:var(--muted);margin-bottom:4px;letter-spacing:.8px">2026</div>
+        <div class="mo-grid" id="moGrid2026"></div>
+      </div>
+      <div id="mo2025" style="margin-top:6px">
+        <div style="font-size:.67rem;color:var(--muted);margin-bottom:4px;letter-spacing:.8px">2025</div>
+        <div class="mo-grid" id="moGrid2025"></div>
+      </div>
+      <div class="sel-months-list" id="selMonthsLabel">No months selected</div>
+    </div>
+  </div>
+
+  <!-- ③ View -->
+  <div class="panel disabled" id="pView">
+    <div class="panel-title">③ View</div>
+    <div class="btn-grp">
+      <button class="btn" id="bClients" onclick="selView('clients')">👥 Clients</button>
+      <button class="btn" id="bItems"   onclick="selView('items')">📦 Items</button>
+    </div>
+  </div>
+
+  <!-- ④a Clients sub-filters -->
+  <div class="panel disabled" id="pClientsPanel">
+    <div class="panel-title">④ Select Clients</div>
+    <input class="srch" type="text" id="clientSrch" placeholder="Search clients…" oninput="filterList('clientList', this.value)"/>
+    <div class="mini-row">
+      <button class="mini" onclick="setAll('clientList', true)">All</button>
+      <button class="mini" onclick="setAll('clientList', false)">None</button>
+    </div>
+    <div class="chk-list" id="clientList"></div>
+  </div>
+
+  <!-- ④b Clients output mode -->
+  <div class="panel disabled" id="pClientMode">
+    <div class="panel-title">⑤ Show Per Client</div>
+    <div class="btn-grp">
+      <button class="btn" id="bClientItems" onclick="selClientMode('items')">📦 Items breakdown</button>
+      <button class="btn" id="bClientCash"  onclick="selClientMode('cash')">💰 Cash summary</button>
+    </div>
+  </div>
+
+  <!-- ④c Items filters (hierarchy) -->
+  <div class="panel disabled" id="pItemsPanel">
+    <div class="panel-title">④ Item Category Filter</div>
+    <div class="btn-grp" style="margin-bottom:8px">
+      <button class="btn" id="bTablet"   onclick="selCatType('tablet')">🏷 Tablet Category</button>
+      <button class="btn" id="bCategory" onclick="selCatType('category')">📂 Group Category</button>
+    </div>
+    <input class="srch" type="text" id="catSrch" placeholder="Search categories…"
+         oninput="filterList('catList', this.value)" style="display:none"/>
+    <div class="mini-row" id="catMiniRow" style="display:none">
+      <button class="mini" onclick="setAll('catList',true);buildItemList()">All</button>
+      <button class="mini" onclick="setAll('catList',false);buildItemList()">None</button>
+    </div>
+    <div class="chk-list" id="catList" style="max-height:140px"></div>
+  </div>
+
+  <div class="panel disabled" id="pItemSelect">
+    <div class="panel-title">⑤ Select Items</div>
+    <input class="srch" type="text" id="itemSrch" placeholder="Search items…" oninput="filterList('itemList', this.value)"/>
+    <div class="mini-row">
+      <button class="mini" onclick="setAll('itemList', true)">All</button>
+      <button class="mini" onclick="setAll('itemList', false)">None</button>
+    </div>
+    <div class="chk-list" id="itemList"></div>
+  </div>
+
+  <div class="panel disabled" id="pItemMode">
+    <div class="panel-title">⑥ Show Per Item</div>
+    <div class="btn-grp">
+      <button class="btn" id="bItemClients" onclick="selItemMode('clients')">👥 By Clients</button>
+      <button class="btn" id="bItemOnly"    onclick="selItemMode('items')">📦 Items summary</button>
+    </div>
+  </div>
+
+  <!-- Apply -->
+  <button class="apply-btn" id="applyBtn" onclick="doApply()" disabled>▶ Apply &amp; Render</button>
+
+</aside>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════ -->
+<main id="main">
+  <div class="welcome">
+    <div class="ic">📊</div>
+    <h2>Sales Dashboard</h2>
+    <p>Load <code>data.json</code> using the button below, then use the filters on the left to explore your data.</p>
+    <br/>
+    <label style="display:inline-block;background:var(--acc);color:#fff;border-radius:8px;padding:10px 22px;cursor:pointer;font-weight:700;font-size:.9rem">
+      📂 Load data.json
+      <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadFile(this)"/>
+    </label>
+    <p style="margin-top:8px;font-size:.75rem">Or place <code>data.json</code> in the same folder and open via a local server.</p>
+  </div>
+</main>
+
+</div><!-- end shell -->
+
+<!-- ══ PIE CHART MODAL ══════════════════════════════════════ -->
+<div id="pieModal" class="pie-overlay" onclick="pieOverlayClick(event)">
+  <div class="pie-modal">
+    <div class="pie-modal-hdr">
+      <span>📊 <span id="pieModalTitle"></span></span>
+      <span class="pie-modal-sub" id="pieModalSub"></span>
+      <button class="pie-close" onclick="closePieModal()">✕</button>
+    </div>
+    <div class="pie-modal-body">
+      <div class="pie-chart-side">
+        <div class="pie-canvas-wrap"><canvas id="pieModalCanvas"></canvas></div>
+        <div class="pie-total-lbl">Total: <b id="pieModalTotal"></b></div>
+      </div>
+      <div class="pie-table-side">
+        <table class="pie-tbl">
+          <thead><tr><th>#</th><th>Name</th><th>Cash</th><th>Qty</th><th>Share</th></tr></thead>
+          <tbody id="pieModalTbody"></tbody>
+          <tfoot><tr><td colspan="2">Total</td><td id="pieModalTfoot3"></td><td id="pieModalTfoot4"></td><td id="pieModalTfoot5">100%</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+'use strict';
+
+// ══ State ═══════════════════════════════════════════════════
+const S = {
+  raw: [],
+  co: null,
+  dateMode: 'range',
+  dateFrom: null,   // stored as YYYY-MM-DD internally
+  dateTo:   null,
+  selMonths: new Set(), // "YYYY-M"
+  view: null,
+  clientMode: null,
+  catType: null,
+  itemMode: null,
+};
+
+const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ══ Load JSON ════════════════════════════════════════════════
+function _loadData(data) {
+  S.raw = data.rows || data;
+  document.getElementById('dataBadge').innerHTML = `Loaded: <b>${S.raw.length.toLocaleString()}</b> rows`;
+  showMain(`<div class="welcome"><div class="ic">✅</div>
+    <h2>Data loaded — ${S.raw.length.toLocaleString()} rows</h2>
+    <p>Generated: ${data.generated||'unknown'}<br/>Select a company on the left to begin.</p></div>`);
+  buildMonthGrid();
+  on('pDate');
+}
+
+function loadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try { _loadData(JSON.parse(e.target.result)); }
+    catch(err) { alert('Error reading JSON: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ── Auto-fetch data.json when served via HTTP/HTTPS ──────────
+if (location.protocol !== 'file:') {
+  showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
+  fetch('./data.json')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => _loadData(data))
+    .catch(err => {
+      showMain(`<div class="welcome">
+        <div class="ic">📊</div>
+        <h2>Sales Dashboard</h2>
+        <p>Could not load data automatically (${err.message}).<br/>Please upload the file manually.</p>
+        <br/>
+        <label style="display:inline-block;background:var(--acc);color:#fff;border-radius:8px;padding:10px 22px;cursor:pointer;font-weight:700;font-size:.9rem">
+          📂 Load data.json
+          <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadFile(this)"/>
+        </label>
+      </div>`);
+    });
+}
+
+function onDateChg() {
+  // type="date" inputs return YYYY-MM-DD directly — no parsing needed
+  S.dateFrom = document.getElementById('dateFrom').value || null;
+  S.dateTo   = document.getElementById('dateTo').value || null;
+  chkApply();
+}
+
+// ══ Company ══════════════════════════════════════════════════
+function selCo(co) {
+  S.co = co; S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
+  act('bPupik', co==='pupik'); act('bGrow', co==='grow');
+  on('pView');
+  off('pClientsPanel'); off('pClientMode');
+  off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
+  clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
+  chkApply();
+}
+
+// ══ Date mode ════════════════════════════════════════════════
+function setDateMode(m) {
+  S.dateMode = m;
+  act2('tRange', m==='range'); act2('tMonths', m==='months');
+  document.getElementById('rangeInputs').style.display = m==='range' ? '' : 'none';
+  document.getElementById('monthsPicker').classList.toggle('active', m==='months');
+  // Clear the other mode's selections
+  if (m === 'range') {
+    clearMonths();
+  } else {
+    S.dateFrom = null; S.dateTo = null;
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+  }
+  // Reset all downstream filters (view and below)
+  S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
+  off('pClientsPanel'); off('pClientMode');
+  off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
+  clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
+  if (S.co) on('pView'); else off('pView');
+  chkApply();
+}
+
+// ══ Month grid ═══════════════════════════════════════════════
+function buildMonthGrid() {
+  [2025, 2026].forEach(yr => {
+    const grid = document.getElementById(`moGrid${yr}`);
+    grid.innerHTML = '';
+    MN.forEach((mn, idx) => {
+      const m = idx + 1;
+      const key = `${yr}-${m}`;
+      const btn = document.createElement('button');
+      btn.className = 'mo-btn';
+      btn.dataset.key = key;
+      btn.textContent = mn;
+      btn.onclick = () => toggleMonth(btn, key);
+      grid.appendChild(btn);
+    });
+  });
+}
+
+function toggleMonth(btn, key) {
+  if (S.selMonths.has(key)) { S.selMonths.delete(key); btn.classList.remove('sel'); }
+  else                       { S.selMonths.add(key);    btn.classList.add('sel');    }
+  updateMonthLabel(); chkApply();
+}
+
+// FIX: yearBtn now always ADDS all months for a year (not toggle)
+// Click 2025 again to deselect — use Clear button to reset
+function yearBtn(yr) {
+  const allSelected = MN.every((_, idx) => S.selMonths.has(`${yr}-${idx+1}`));
+  MN.forEach((_, idx) => {
+    const m = idx + 1;
+    const key = `${yr}-${m}`;
+    const btn = document.querySelector(`.mo-btn[data-key="${key}"]`);
+    if (allSelected) {
+      // all were selected → deselect all for this year
+      S.selMonths.delete(key);
+      if (btn) btn.classList.remove('sel');
+    } else {
+      // add all for this year
+      S.selMonths.add(key);
+      if (btn) btn.classList.add('sel');
+    }
+  });
+  updateMonthLabel(); chkApply();
+}
+
+function clearMonths() {
+  S.selMonths.clear();
+  document.querySelectorAll('.mo-btn.sel').forEach(b => b.classList.remove('sel'));
+  updateMonthLabel(); chkApply();
+}
+
+function updateMonthLabel() {
+  const el = document.getElementById('selMonthsLabel');
+  if (!S.selMonths.size) { el.textContent = 'No months selected'; return; }
+  el.textContent = getSortedMonths()
+    .map(k => { const [y,m]=k.split('-'); return MN[+m-1]+' '+y; }).join(', ');
+}
+
+// ══ View ═════════════════════════════════════════════════════
+function selView(v) {
+  S.view = v; S.clientMode = null; S.catType = null; S.itemMode = null;
+  act('bClients', v==='clients'); act('bItems', v==='items');
+  if (v === 'clients') {
+    on('pClientsPanel'); on('pClientMode');
+    off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
+    buildClientList();
+  } else {
+    off('pClientsPanel'); off('pClientMode');
+    on('pItemsPanel'); off('pItemSelect'); off('pItemMode');
+    buildCatList();
+  }
+  clrAct(['bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
+  chkApply();
+}
+
+// ══ Client list — FIX: use ALL company rows (not date-filtered)
+//    so list is always populated regardless of date selection   ══
+function buildClientList() {
+  const rows = S.raw.filter(r => r.company === S.co);
+  const clients = {};
+  rows.forEach(r => {
+    if (!r.clientID) return;
+    if (!clients[r.clientID]) clients[r.clientID] = r.clientName || r.clientID;
+  });
+  const list = document.getElementById('clientList');
+  list.innerHTML = '';
+  Object.entries(clients).sort((a,b) => a[1].localeCompare(b[1])).forEach(([id, name]) => {
+    const lbl = document.createElement('label');
+    lbl.className = 'ck';
+    lbl.dataset.n = name.toLowerCase();
+    lbl.innerHTML = `<input type="checkbox" value="${esc(id)}" checked/>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(name)}">${name}</span>`;
+    list.appendChild(lbl);
+  });
+}
+
+function selClientMode(m) {
+  S.clientMode = m;
+  act('bClientItems', m==='items'); act('bClientCash', m==='cash');
+  chkApply();
+}
+
+// ══ Category / Item lists — also use ALL company rows ════════
+function selCatType(t) {
+  S.catType = t; S.itemMode = null;
+  act('bTablet', t==='tablet'); act('bCategory', t==='category');
+  buildCatList();
+  on('pItemSelect'); on('pItemMode');
+  clrAct(['bItemClients','bItemOnly']);
+  chkApply();
+}
+
+function buildCatList() {
+  if (!S.catType) return;
+  const rows = S.raw.filter(r => r.company === S.co);
+  const cats = new Set();
+  rows.forEach(r => {
+    const v = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
+    if (v) cats.add(v);
+  });
+  const list = document.getElementById('catList');
+  list.innerHTML = '';
+  [...cats].sort().forEach(c => {
+    const lbl = document.createElement('label');
+    lbl.className = 'ck';
+    lbl.dataset.n = c.toLowerCase();
+    lbl.innerHTML = `<input type="checkbox" value="${esc(c)}" checked onchange="buildItemList()"/>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c}</span>`;
+    list.appendChild(lbl);
+  });
+  const hasCats = cats.size > 0;
+  document.getElementById('catSrch').style.display = hasCats ? '' : 'none';
+  document.getElementById('catSrch').value = '';
+  document.getElementById('catMiniRow').style.display = hasCats ? '' : 'none';
+  buildItemList();
+}
+
+function buildItemList() {
+  const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c => c.value));
+  const rows = S.raw.filter(r => {
+    if (r.company !== S.co) return false;
+    const cat = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
+    return selCats.has(cat);
+  });
+  const items = {};
+  rows.forEach(r => {
+    if (!r.itemSKU) return;
+    if (!items[r.itemSKU]) items[r.itemSKU] = r.itemName || r.itemSKU;
+  });
+  const list = document.getElementById('itemList');
+  list.innerHTML = '';
+  Object.entries(items).sort((a,b) => a[1].localeCompare(b[1])).forEach(([sku, name]) => {
+    const lbl = document.createElement('label');
+    lbl.className = 'ck';
+    lbl.dataset.n = name.toLowerCase();
+    lbl.innerHTML = `<input type="checkbox" value="${esc(sku)}" checked/>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(name)}">${name}</span>`;
+    list.appendChild(lbl);
+  });
+}
+
+function selItemMode(m) {
+  S.itemMode = m;
+  act('bItemClients', m==='clients'); act('bItemOnly', m==='items');
+  chkApply();
+}
+
+// ══ Date filtering ═══════════════════════════════════════════
+function filterByDate(rows) {
+  if (S.dateMode === 'range') {
+    const from = S.dateFrom ? new Date(S.dateFrom) : null;
+    const to   = S.dateTo   ? new Date(S.dateTo)   : null;
+    return rows.filter(r => {
+      if (!r.date) return false;
+      const d = new Date(r.date);
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  } else {
+    if (!S.selMonths.size) return [];
+    return rows.filter(r => {
+      let yr = Number(r.year);
+      let mo = Number(r.month);
+      // Fallback: if month or year is 0/missing, derive from the date string (YYYY-MM-DD)
+      if ((!mo || !yr) && r.date && r.date.length >= 7) {
+        yr = yr || parseInt(r.date.substring(0, 4), 10);
+        mo = mo || parseInt(r.date.substring(5, 7), 10);
+      }
+      return S.selMonths.has(`${yr}-${mo}`);
+    });
+  }
+}
+
+// ══ Apply ════════════════════════════════════════════════════
+function doApply() {
+  if (S.dateMode === 'range') {
+    if (!S.dateFrom || !S.dateTo) { alert('Please enter valid From and To dates (dd/mm/yyyy).'); return; }
+    if (S.dateFrom > S.dateTo)    { alert('From date must be before To date.'); return; }
+  } else {
+    if (!S.selMonths.size) { alert('Please select at least one month.'); return; }
+  }
+
+  showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
+  setTimeout(() => {
+    try {
+      const coRows = filterByDate(S.raw.filter(r => r.company === S.co));
+      if (!coRows.length) {
+        showMain('<div class="err">No data found for the selected period and company.</div>'); return;
+      }
+      if (S.view === 'clients') renderClients(coRows);
+      else                      renderItems(coRows);
+    } catch(e) {
+      showMain(`<div class="err">Render error: ${e.message}</div>`);
+      console.error(e);
+    }
+  }, 30);
+}
+
+// ══ Collapse toggle (called after innerHTML is set) ══════════
+function attachCollapse() {
+  document.querySelectorAll('.section-title[data-collapse]').forEach(title => {
+    title.addEventListener('click', () => {
+      const sec = title.closest('.section');
+      sec.classList.toggle('collapsed');
+    });
+  });
+}
+
+// Build a collapsible section wrapper
+// sumCash, sumQty = totals shown in collapsed mini-bar
+function makeSection(icon, label, id, sumCash, sumQty, bodyHtml) {
+  return `<div class="section" id="sec-${id}">
+    <div class="section-title" data-collapse="1">
+      ${icon} ${label}
+      <span class="collapse-icon">▾</span>
+    </div>
+    <div class="section-sum">
+      <span>Cash: <b>${fmt(sumCash)}</b></span>
+      <span>Qty: <b>${fmt(sumQty)}</b></span>
+    </div>
+    <div class="section-body">${bodyHtml}</div>
+  </div>`;
+}
+
+// ══ Render: Clients ══════════════════════════════════════════
+function renderClients(coRows) {
+  const selClientIDs = new Set([...document.querySelectorAll('#clientList input:checked')].map(c => c.value));
+  const rows = coRows.filter(r => selClientIDs.has(r.clientID));
+  if (!rows.length) { showMain('<div class="err">No data for selected clients in the chosen period.</div>'); return; }
+
+  const clients = {};
+  rows.forEach(r => {
+    if (!clients[r.clientID]) clients[r.clientID] = { name: r.clientName || r.clientID, rows: [] };
+    clients[r.clientID].rows.push(r);
+  });
+
+  let html = buildSbar({ company: coName(S.co), view: 'Clients', period: getDateLabel(), count: Object.keys(clients).length, rows });
+
+  Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
+    const { cash, qty } = sumRows(cl.rows);
+    const label = `${cl.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${cid}</span>`;
+    const body  = S.clientMode === 'cash' ? renderCashTable(cl.rows) : renderItemsUnderClient(cl.rows);
+    html += makeSection('👤', label, `c${i}`, cash, qty, body);
+  });
+
+  showMain(html);
+  attachCollapse();
+  injectDlButtons();
+  attachPieButton(
+    Object.entries(clients).map(([, cl]) => {
+      const { cash, qty } = sumRows(cl.rows);
+      return { label: cl.name, value: cash, qty };
+    }),
+    'Cash by Client'
+  );
+}
+
+// ══ Cash table ═══════════════════════════════════════════════
+function renderCashTable(rows) {
+  if (S.dateMode === 'range') {
+    const { cash, qty } = sumRows(rows);
+    return `<div class="tw"><table>
+      <thead><tr><th style="text-align:left">💰 Total Cash</th><th style="text-align:left">📦 Total Qty</th></tr></thead>
+      <tbody><tr><td style="text-align:left">${fmt(cash)}</td><td style="text-align:left">${fmt(qty)}</td></tr></tbody>
+      </table></div>`;
+  }
+  const months = getSortedMonths();
+  let h = `<div class="tw"><table><thead><tr><th style="text-align:left">Metric</th>`;
+  months.forEach(mk => { const [y,m]=mk.split('-'); h+=`<th>${MN[+m-1]} ${y}</th>`; });
+  h += `<th>Total</th></tr></thead><tbody>`;
+
+  let totC=0, totQ=0;
+  h += `<tr><td style="text-align:left">💰 Cash</td>`;
+  months.forEach(mk => {
+    const [y,m]=mk.split('-');
+    const v = rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m).reduce((a,r)=>a+(r.cash||0),0);
+    h += `<td>${fmt0(v)}</td>`; totC+=v;
+  });
+  h += `<td style="font-weight:700">${fmt(totC)}</td></tr>`;
+
+  h += `<tr><td style="text-align:left">📦 Qty</td>`;
+  months.forEach(mk => {
+    const [y,m]=mk.split('-');
+    const v = rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m).reduce((a,r)=>a+(r.qty||0),0);
+    h += `<td class="cm">${fmt0(v)}</td>`; totQ+=v;
+  });
+  h += `<td class="cm" style="font-weight:700">${fmt(totQ)}</td></tr>`;
+  h += `</tbody></table></div>`;
+  return h;
+}
+
+// ══ Items under client ═══════════════════════════════════════
+function renderItemsUnderClient(rows) {
+  const items = {};
+  rows.forEach(r => {
+    if (!r.itemSKU) return;
+    if (!items[r.itemSKU]) items[r.itemSKU] = { name: r.itemName||r.itemSKU, rows:[] };
+    items[r.itemSKU].rows.push(r);
+  });
+
+  if (S.dateMode === 'range') {
+    let h = `<div class="tw"><table>
+      <thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+    let tq=0, tc=0;
+    Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it]) => {
+      const {cash,qty}=sumRows(it.rows); tq+=qty; tc+=cash;
+      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+    });
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    return h;
+  }
+
+  const months = getSortedMonths();
+  let h = `<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  let gc=0,gq=0; const gmc={},gmq={};
+  Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
+    let rc=0,rq=0;
+    h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td>`;
+    months.forEach(mk=>{
+      const[y,m]=mk.split('-');
+      const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
+      const cash=f.reduce((a,r)=>a+(r.cash||0),0), qty=f.reduce((a,r)=>a+(r.qty||0),0);
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    });
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    gc+=rc;gq+=rq;
+  });
+  h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  return h;
+}
+
+// ══ Render: Items ════════════════════════════════════════════
+function renderItems(coRows) {
+  const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c=>c.value));
+  const selSKUs = new Set([...document.querySelectorAll('#itemList input:checked')].map(c=>c.value));
+  const rows = coRows.filter(r => {
+    const cat = S.catType==='tablet' ? r.tabletCat : r.groupCat;
+    return selCats.has(cat) && selSKUs.has(r.itemSKU);
+  });
+  if (!rows.length) { showMain('<div class="err">No data for selected items in the chosen period.</div>'); return; }
+
+  let html = buildSbar({ company: coName(S.co), view: 'Items', period: getDateLabel(), count: selSKUs.size, rows });
+
+  if (S.itemMode === 'items') {
+    html += renderItemsSummaryTable(rows);
+    showMain(html);
+    injectDlButtons();
+    attachPieButton(buildItemPie(rows), 'Cash by Item');
+  } else {
+    const items = {};
+    rows.forEach(r => {
+      if (!r.itemSKU) return;
+      if (!items[r.itemSKU]) items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
+      items[r.itemSKU].rows.push(r);
+    });
+    Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it],i)=>{
+      const {cash,qty}=sumRows(it.rows);
+      const label=`${it.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${sku}</span>`;
+      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows));
+    });
+    showMain(html);
+    attachCollapse();
+    injectDlButtons();
+    attachPieButton(buildItemPie(rows), 'Cash by Item');
+  }
+}
+
+// ══ Items summary table ══════════════════════════════════════
+function renderItemsSummaryTable(rows) {
+  const items = {};
+  rows.forEach(r=>{
+    if(!r.itemSKU)return;
+    if(!items[r.itemSKU])items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
+    items[r.itemSKU].rows.push(r);
+  });
+  if (S.dateMode==='range') {
+    let h=`<div class="tw"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+    let tq=0,tc=0;
+    Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
+      const{cash,qty}=sumRows(it.rows);tq+=qty;tc+=cash;
+      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+    });
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    return h;
+  }
+  const months=getSortedMonths();
+  let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  let gc=0,gq=0;const gmc={},gmq={};
+  Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
+    let rc=0,rq=0;
+    h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td>`;
+    months.forEach(mk=>{
+      const[y,m]=mk.split('-');
+      const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
+      const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    });
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    gc+=rc;gq+=rq;
+  });
+  h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  return h;
+}
+
+// ══ Clients under item ═══════════════════════════════════════
+function renderClientsUnderItem(rows) {
+  const clients={};
+  rows.forEach(r=>{
+    if(!r.clientID)return;
+    if(!clients[r.clientID])clients[r.clientID]={name:r.clientName||r.clientID,rows:[]};
+    clients[r.clientID].rows.push(r);
+  });
+  if (S.dateMode==='range') {
+    let h=`<div class="tw"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+    let tq=0,tc=0;
+    Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
+      const{cash,qty}=sumRows(cl.rows);tq+=qty;tc+=cash;
+      h+=`<tr><td>${esc(cid)}</td><td title="${esc(cl.name)}">${cl.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+    });
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    return h;
+  }
+  const months=getSortedMonths();
+  let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
+  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  let gc=0,gq=0;const gmc={},gmq={};
+  Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
+    let rc=0,rq=0;
+    h+=`<tr><td>${esc(cid)}</td><td title="${esc(cl.name)}">${cl.name}</td>`;
+    months.forEach(mk=>{
+      const[y,m]=mk.split('-');
+      const f=cl.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
+      const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    });
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    gc+=rc;gq+=rq;
+  });
+  h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  return h;
+}
+
+// ══ Helpers ══════════════════════════════════════════════════
+function filterList(listId, q) {
+  document.querySelectorAll(`#${listId} label.ck`).forEach(l => {
+    l.style.display = l.dataset.n && l.dataset.n.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function setAll(listId, v) {
+  document.querySelectorAll(`#${listId} input[type=checkbox]`).forEach(c => c.checked = v);
+}
+function sumRows(rows) {
+  return {
+    cash: rows.reduce((a,r)=>a+(r.cash||0),0),
+    qty:  rows.reduce((a,r)=>a+(r.qty||0),0),
+  };
+}
+function getSortedMonths() {
+  return [...S.selMonths].sort((a,b)=>{
+    const[ay,am]=a.split('-').map(Number);
+    const[by,bm]=b.split('-').map(Number);
+    return (ay*100+am)-(by*100+bm);
+  });
+}
+function getDateLabel() {
+  if (S.dateMode==='range') {
+    const f=document.getElementById('dateFrom').value;
+    const t=document.getElementById('dateTo').value;
+    return `${f} → ${t}`;
+  }
+  return getSortedMonths().map(k=>{const[y,m]=k.split('-');return MN[+m-1]+' '+y;}).join(', ');
+}
+function coName(co){ return co==='pupik'?'Pupik':co==='mt'?'Monkeytime':'Grow'; }
+function buildSbar({company,view,period,count,rows}){
+  let warn = '';
+  // Detect skew: if months mode and one month has >60% of total cash
+  if (S.dateMode === 'months' && rows && rows.length) {
+    const totalCash = rows.reduce((a,r)=>a+(r.cash||0),0);
+    if (totalCash > 0) {
+      const months = getSortedMonths();
+      let maxMk='', maxVal=0;
+      months.forEach(mk => {
+        const [y,m] = mk.split('-');
+        const v = rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m).reduce((a,r)=>a+(r.cash||0),0);
+        if (v > maxVal) { maxVal=v; maxMk=mk; }
+      });
+      const pct = (maxVal/totalCash)*100;
+      if (pct > 60 && months.length > 1) {
+        const [y,m] = maxMk.split('-');
+        warn = `<div class="warn">⚠ ${MN[+m-1]} ${y} accounts for ${pct.toFixed(0)}% of total cash — your source data may have year-end accumulation rows in that month.</div>`;
+      }
+    }
+  }
+  return `${warn}<div class="sbar">
+    <span>Company: <b>${company}</b></span>
+    <span>View: <b>${view}</b></span>
+    <span>Period: <b>${period}</b></span>
+    <span>Records: <b>${count}</b></span>
+  </div>`;
+}
+// fmt for general use (returns — for null/empty)
+function fmt(n){ if(n==null||n==='')return'—'; return Number(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+// fmt0 for month cells — shows 0 explicitly so empty months are visible
+function fmt0(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function showMain(html){ document.getElementById('main').innerHTML=html; }
+function on(id){ const e=document.getElementById(id);if(e)e.classList.remove('disabled'); }
+function off(id){ const e=document.getElementById(id);if(e)e.classList.add('disabled'); }
+function act(id,v){ document.getElementById(id)?.classList.toggle('active',v); }
+function act2(id,v){ document.getElementById(id)?.classList.toggle('active',v); }
+function clrAct(ids){ ids.forEach(id=>document.getElementById(id)?.classList.remove('active')); }
+// ── CSV Export ────────────────────────────────────────────────
+function injectDlButtons() {
+  document.querySelectorAll('#main .tw').forEach(tw => {
+    if (tw.previousElementSibling?.classList.contains('dl-bar')) return;
+    const bar = document.createElement('div');
+    bar.className = 'dl-bar';
+    // Only show Chart button if the table has a data-pie-cash column
+    const hasPie = tw.querySelector('th[data-pie-cash]');
+    bar.innerHTML = '<button class="dl-btn" onclick="dlTable(this)">📥 Export CSV</button>' +
+      (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '');
+    tw.parentNode.insertBefore(bar, tw);
+  });
+}
+function dlTable(btn) {
+  const tw = btn.closest('.dl-bar').nextElementSibling;
+  const table = tw?.querySelector('table');
+  if (!table) return;
+  dlCSV(table);
+}
+function dlCSV(table) {
+  const rows = [...table.querySelectorAll('tr')];
+  const csv = rows.map(row => {
+    return [...row.querySelectorAll('th,td')].map(c => {
+      const clone = c.cloneNode(true);
+      clone.querySelectorAll('.si').forEach(el => el.remove());
+      let text = clone.textContent.replace(/\s+/g, ' ').trim();
+      if (text.includes(',') || text.includes('"') || text.includes('\n'))
+        text = '"' + text.replace(/"/g, '""') + '"';
+      return text;
+    }).join(',');
+  }).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `export_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── Column sort ───────────────────────────────────────────────
+function sortTable(th) {
+  const table = th.closest('table');
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const idx = th.cellIndex;
+  const asc = th.dataset.sd !== 'asc';
+  // Reset all headers in this table
+  table.querySelectorAll('th.sortable').forEach(h => {
+    h.dataset.sd = '';
+    const si = h.querySelector('.si');
+    if (si) si.textContent = ' ↕';
+  });
+  th.dataset.sd = asc ? 'asc' : 'desc';
+  const si = th.querySelector('.si');
+  if (si) si.textContent = asc ? ' ↑' : ' ↓';
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const ac = a.cells[idx], bc = b.cells[idx];
+    if (!ac || !bc) return 0;
+    // Use data-sv for numeric sort value if present
+    const av = (ac.dataset.sv !== undefined && ac.dataset.sv !== '') ? Number(ac.dataset.sv) : NaN;
+    const bv = (bc.dataset.sv !== undefined && bc.dataset.sv !== '') ? Number(bc.dataset.sv) : NaN;
+    if (!isNaN(av) && !isNaN(bv)) return asc ? av - bv : bv - av;
+    // Fall back to text sort (strips commas for numbers)
+    const at = ac.textContent.trim(), bt = bc.textContent.trim();
+    const an = parseFloat(at.replace(/,/g,'')), bn = parseFloat(bt.replace(/,/g,''));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+    return asc ? at.localeCompare(bt) : bt.localeCompare(at);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+// Delegated click handler — catches all sortable headers inside #main
+document.getElementById('main').addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (th) sortTable(th);
+});
+
+// ── Pie chart ─────────────────────────────────────────────────
+const PIE_COLORS = [
+  '#4f7ef8','#7c3aed','#22c55e','#f59e0b','#ef4444',
+  '#06b6d4','#ec4899','#84cc16','#f97316','#a855f7',
+  '#14b8a6','#e11d48','#0ea5e9','#d97706','#10b981',
+  '#6366f1','#b45309','#be185d','#047857','#9333ea'
+];
+
+// Build [{label, value}] of cash by itemSKU from a rows array
+function buildItemPie(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!r.itemSKU) return;
+    if (!map[r.itemSKU]) map[r.itemSKU] = { name: r.itemName || r.itemSKU, cash: 0, qty: 0 };
+    map[r.itemSKU].cash += (r.cash || 0);
+    map[r.itemSKU].qty  += (r.qty  || 0);
+  });
+  return Object.entries(map).map(([sku, it]) => ({ label: it.name, value: it.cash, qty: it.qty, sku }));
+}
+
+// ── Attach chart button to status bar ─────────────────────────
+let _lastPie = null;
+let _pieModalChart = null;
+
+function attachPieButton(entries, chartTitle) {
+  _lastPie = { entries, chartTitle };
+  const sbar = document.querySelector('#main .sbar');
+  if (!sbar || sbar.querySelector('.sbar-chart-btn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'sbar-chart-btn';
+  btn.textContent = '📊 Chart';
+  btn.onclick = openPieModal;
+  sbar.appendChild(btn);
+}
+
+// ── Chart button per table ────────────────────────────────────
+function dlTablePie(btn) {
+  const tw = btn.closest('.dl-bar').nextElementSibling;
+  const table = tw?.querySelector('table');
+  if (!table) return;
+
+  // Find the cash and qty columns
+  const headers = [...table.querySelectorAll('thead th')];
+  const cashColIdx = headers.findIndex(th => th.hasAttribute('data-pie-cash'));
+  if (cashColIdx === -1) return;
+  const qtyColIdx = headers.findIndex(th => th.hasAttribute('data-pie-qty'));
+
+  // Check if col0 header is "SKU" — only then pass SKU through to the modal
+  const col0Hdr = headers[0]?.cloneNode(true);
+  col0Hdr?.querySelectorAll('.si').forEach(el => el.remove());
+  const isSkuTable = (col0Hdr?.textContent.trim() || '') === 'SKU';
+
+  // Extract label (col 1 text) + cash + qty (+ optional sku) from each tbody row
+  const entries = [];
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const labelCell = row.cells[1];
+    const valueCell = row.cells[cashColIdx];
+    if (!labelCell || !valueCell) return;
+    // Strip any nested spans (e.g. sort icons) from label text
+    const labelClone = labelCell.cloneNode(true);
+    labelClone.querySelectorAll('.si').forEach(el => el.remove());
+    const label = labelClone.textContent.trim();
+    const value = (valueCell.dataset.sv !== undefined && valueCell.dataset.sv !== '')
+      ? Number(valueCell.dataset.sv) : 0;
+    const qtyCell = qtyColIdx >= 0 ? row.cells[qtyColIdx] : null;
+    const qty = qtyCell?.dataset.sv !== undefined && qtyCell.dataset.sv !== ''
+      ? Number(qtyCell.dataset.sv) : 0;
+    if (label && value > 0) {
+      const entry = { label, value, qty };
+      if (isSkuTable) {
+        const sc = row.cells[0]?.cloneNode(true);
+        sc?.querySelectorAll('.si').forEach(el => el.remove());
+        entry.sku = sc?.textContent.trim() || '';
+      }
+      entries.push(entry);
+    }
+  });
+
+  if (!entries.length) return;
+  _showPieModal(entries, getTableTitle(tw));
+}
+
+function getTableTitle(tw) {
+  const section = tw.closest('.section');
+  if (section) {
+    const titleEl = section.querySelector('.section-title');
+    if (titleEl) {
+      const clone = titleEl.cloneNode(true);
+      // Remove collapse arrow, sort icons, muted SKU/ID spans
+      clone.querySelectorAll('.collapse-icon, .si, span[style]').forEach(el => el.remove());
+      return clone.textContent.trim().replace(/\s+/g, ' ');
+    }
+  }
+  return 'Cash Distribution';
+}
+
+// ── Open modal (top-of-page button) ──────────────────────────
+function openPieModal() {
+  if (!_lastPie) return;
+  _showPieModal(_lastPie.entries, _lastPie.chartTitle);
+}
+
+// ── Core modal renderer ───────────────────────────────────────
+function _showPieModal(entries, chartTitle) {
+  const TOP = 20;
+
+  let data = entries.filter(e => e.value > 0).sort((a, b) => b.value - a.value);
+  if (!data.length) return;
+
+  let labels, values, colors, tableRows;
+  const hasOthers = data.length > TOP;
+  if (hasOthers) {
+    const top      = data.slice(0, TOP);
+    const rest     = data.slice(TOP).reduce((s, e) => s + e.value, 0);
+    const restQty  = data.slice(TOP).reduce((s, e) => s + (e.qty || 0), 0);
+    labels    = [...top.map(e => e.label), 'Others'];
+    values    = [...top.map(e => e.value), rest];
+    colors    = [...PIE_COLORS.slice(0, TOP), '#3d4266'];
+    tableRows = [...top.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] })),
+                 { label: `Others (${data.length - TOP} more)`, value: rest, qty: restQty, sku: '', color: '#3d4266' }];
+  } else {
+    labels    = data.map(e => e.label);
+    values    = data.map(e => e.value);
+    colors    = PIE_COLORS.slice(0, data.length);
+    tableRows = data.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] }));
+  }
+
+  const total    = values.reduce((s, v) => s + v, 0);
+  const totalQty = tableRows.reduce((s, r) => s + (r.qty || 0), 0);
+  const hasSku   = tableRows.some(r => r.sku && r.sku.trim());
+
+  // Populate modal header
+  document.getElementById('pieModalTitle').textContent = chartTitle;
+  document.getElementById('pieModalSub').textContent =
+    data.length > TOP ? `Top ${TOP} of ${data.length} shown` : `${data.length} entries`;
+  document.getElementById('pieModalTotal').textContent = fmt(total);
+
+  // Update thead and tfoot dynamically based on whether SKU column is present
+  const pieTable = document.querySelector('#pieModal .pie-tbl');
+  if (hasSku) {
+    pieTable.querySelector('thead tr').innerHTML =
+      '<th>#</th><th>SKU</th><th>Name</th>' +
+      '<th style="text-align:right">Cash</th>' +
+      '<th style="text-align:right">Qty</th>' +
+      '<th style="text-align:right">Share</th>';
+    pieTable.querySelector('tfoot tr').innerHTML =
+      `<td colspan="3">Total</td>` +
+      `<td style="text-align:right">${fmt(total)}</td>` +
+      `<td style="text-align:right;color:var(--muted)">${fmt(totalQty)}</td>` +
+      `<td style="text-align:right;color:var(--acc)">100%</td>`;
+  } else {
+    pieTable.querySelector('thead tr').innerHTML =
+      '<th>#</th><th>Name</th>' +
+      '<th style="text-align:right">Cash</th>' +
+      '<th style="text-align:right">Qty</th>' +
+      '<th style="text-align:right">Share</th>';
+    pieTable.querySelector('tfoot tr').innerHTML =
+      `<td colspan="2">Total</td>` +
+      `<td style="text-align:right">${fmt(total)}</td>` +
+      `<td style="text-align:right;color:var(--muted)">${fmt(totalQty)}</td>` +
+      `<td style="text-align:right;color:var(--acc)">100%</td>`;
+  }
+
+  // Populate table body
+  const tbody = document.getElementById('pieModalTbody');
+  tbody.innerHTML = tableRows.map((r, i) => {
+    const pct = total > 0 ? ((r.value / total) * 100).toFixed(1) : '0.0';
+    const isOthers = hasOthers && i === tableRows.length - 1;
+    const skuCell = hasSku
+      ? `<td style="text-align:left;color:var(--muted);font-size:.72rem;white-space:nowrap">${esc(r.sku || '—')}</td>`
+      : '';
+    return `<tr>
+      <td>${isOthers ? '—' : i + 1}</td>
+      ${skuCell}<td><span class="pie-dot-sm" style="background:${r.color}"></span>${esc(r.label)}</td>
+      <td style="text-align:right">${fmt(r.value)}</td>
+      <td style="text-align:right;color:var(--muted)">${fmt(r.qty || 0)}</td>
+      <td style="text-align:right;color:var(--acc);font-weight:700">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  // Show modal
+  const modal = document.getElementById('pieModal');
+  modal.style.display = 'flex';
+
+  // Destroy previous chart instance
+  if (_pieModalChart) { _pieModalChart.destroy(); _pieModalChart = null; }
+
+  const ctx = document.getElementById('pieModalCanvas').getContext('2d');
+  _pieModalChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#1a1d27',
+        borderWidth: 2,
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '58%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw;
+              const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0';
+              return `  ${fmt(v)}  (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function closePieModal() {
+  document.getElementById('pieModal').style.display = 'none';
+}
+
+function pieOverlayClick(e) {
+  // Close if clicked on the overlay backdrop (not the modal itself)
+  if (e.target === document.getElementById('pieModal')) closePieModal();
+}
+
+function chkApply(){
+  const dateOk = S.dateMode==='range'
+    ? (S.dateFrom && S.dateTo)
+    : S.selMonths.size > 0;
+  const ready = S.co && dateOk && (
+    (S.view==='clients' && S.clientMode) ||
+    (S.view==='items'   && S.catType && S.itemMode)
+  );
+  document.getElementById('applyBtn').disabled = !ready;
+}
+</script>
+</body>
+</html>
