@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sales Dashboard — Pupik &amp; Grow</title>
+<title>Sales Dashboard - Group</title>
 <style>
 /* ── Reset & Variables ── */
 :root {
@@ -261,12 +261,13 @@ main { flex: 1; padding: 22px 24px; overflow-y: auto; }
   font-weight: 700;
   margin-bottom: 10px;
   padding: 8px 12px;
-  background: var(--sur2);
-  border: 1px solid var(--bdr);
+  background: rgba(34,197,94,.12);
+  border: 1px solid rgba(34,197,94,.32);
   border-radius: 7px;
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--txt);
 }
 .tw { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bdr); }
 table { width: 100%; border-collapse: collapse; font-size: .8rem; }
@@ -325,9 +326,34 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
   cursor: pointer;
 }
 .dl-btn:hover { color: var(--acc); border-color: var(--acc); }
+/* ── Status bar right-side action buttons ── */
+.sbar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sbar-search {
+  background: var(--bg);
+  border: 1px solid var(--bdr);
+  color: var(--txt);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: .74rem;
+  width: 140px;
+  outline: none;
+}
+.sbar-search:focus { border-color: var(--acc); }
+.sbar-search::placeholder { color: var(--muted); }
+.sbar-minimize-btn {
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: .74rem;
+  cursor: pointer;
+  transition: all .13s;
+  white-space: nowrap;
+}
+.sbar-minimize-btn:hover { color: var(--acc); border-color: var(--acc); }
 /* ── Chart button in status bar ── */
 .sbar-chart-btn {
-  margin-left: auto;
   background: var(--sur2);
   border: 1px solid var(--bdr);
   color: var(--acc);
@@ -640,6 +666,7 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
     <div class="pie-modal-hdr">
       <span>📊 <span id="pieModalTitle"></span></span>
       <span class="pie-modal-sub" id="pieModalSub"></span>
+      <button class="dl-btn" onclick="dlPieModalCSV()" style="margin-left:auto;margin-right:6px">📥 Export CSV</button>
       <button class="pie-close" onclick="closePieModal()">✕</button>
     </div>
     <div class="pie-modal-body">
@@ -659,6 +686,7 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="data_loader.js"></script>
 <script>
 'use strict';
 
@@ -700,8 +728,12 @@ function loadFile(input) {
   reader.readAsText(file);
 }
 
-// ── Auto-fetch data.json when served via HTTP/HTTPS ──────────
-if (location.protocol !== 'file:') {
+// ── Auto-load data ────────────────────────────────────────────
+// Priority 1: data_loader.js injected by VBA macro (works on file:// AND http://)
+if (window.__DASHBOARD_DATA__) {
+  _loadData(window.__DASHBOARD_DATA__);
+} else if (location.protocol !== 'file:') {
+  // Priority 2: served via HTTP — try fetching data.json directly
   showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
   fetch('./data.json')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -719,6 +751,7 @@ if (location.protocol !== 'file:') {
       </div>`);
     });
 }
+// Priority 3: file:// with no data_loader.js → welcome screen shown by default
 
 function onDateChg() {
   // type="date" inputs return YYYY-MM-DD directly — no parsing needed
@@ -988,12 +1021,33 @@ function attachCollapse() {
       sec.classList.toggle('collapsed');
     });
   });
+  // Inject "Minimize All / Expand All" button into sbar-actions
+  const sections = document.querySelectorAll('#main .section');
+  if (!sections.length) return;
+  const actions = document.querySelector('#main .sbar-actions');
+  if (!actions || actions.querySelector('.sbar-minimize-btn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'sbar-minimize-btn';
+  btn.textContent = '⊟ Minimize All';
+  btn.onclick = () => {
+    const all = [...document.querySelectorAll('#main .section')];
+    const allCollapsed = all.every(s => s.classList.contains('collapsed'));
+    if (allCollapsed) {
+      all.forEach(s => s.classList.remove('collapsed'));
+      btn.textContent = '⊟ Minimize All';
+    } else {
+      all.forEach(s => s.classList.add('collapsed'));
+      btn.textContent = '⊞ Expand All';
+    }
+  };
+  actions.appendChild(btn);
 }
 
 // Build a collapsible section wrapper
 // sumCash, sumQty = totals shown in collapsed mini-bar
-function makeSection(icon, label, id, sumCash, sumQty, bodyHtml) {
-  return `<div class="section" id="sec-${id}">
+// exportName/exportId = added as data attrs so CSV export can prepend them
+function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='') {
+  return `<div class="section" id="sec-${id}" data-export-name="${esc(exportName)}" data-export-id="${esc(exportId)}">
     <div class="section-title" data-collapse="1">
       ${icon} ${label}
       <span class="collapse-icon">▾</span>
@@ -1024,7 +1078,7 @@ function renderClients(coRows) {
     const { cash, qty } = sumRows(cl.rows);
     const label = `${cl.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${cid}</span>`;
     const body  = S.clientMode === 'cash' ? renderCashTable(cl.rows) : renderItemsUnderClient(cl.rows);
-    html += makeSection('👤', label, `c${i}`, cash, qty, body);
+    html += makeSection('👤', label, `c${i}`, cash, qty, body, cl.name, cid);
   });
 
   showMain(html);
@@ -1049,7 +1103,7 @@ function renderCashTable(rows) {
       </table></div>`;
   }
   const months = getSortedMonths();
-  let h = `<div class="tw"><table><thead><tr><th style="text-align:left">Metric</th>`;
+  let h = `<div class="tw" data-bar-chart="1"><table><thead><tr><th style="text-align:left">Metric</th>`;
   months.forEach(mk => { const [y,m]=mk.split('-'); h+=`<th>${MN[+m-1]} ${y}</th>`; });
   h += `<th>Total</th></tr></thead><tbody>`;
 
@@ -1106,15 +1160,15 @@ function renderItemsUnderClient(rows) {
       const[y,m]=mk.split('-');
       const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0), qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1145,7 +1199,7 @@ function renderItems(coRows) {
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it],i)=>{
       const {cash,qty}=sumRows(it.rows);
       const label=`${it.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${sku}</span>`;
-      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows));
+      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows), it.name, sku);
     });
     showMain(html);
     attachCollapse();
@@ -1184,15 +1238,15 @@ function renderItemsSummaryTable(rows) {
       const[y,m]=mk.split('-');
       const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1226,15 +1280,15 @@ function renderClientsUnderItem(rows) {
       const[y,m]=mk.split('-');
       const f=cl.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1268,7 +1322,7 @@ function getDateLabel() {
   }
   return getSortedMonths().map(k=>{const[y,m]=k.split('-');return MN[+m-1]+' '+y;}).join(', ');
 }
-function coName(co){ return co==='pupik'?'Pupik':co==='mt'?'Monkeytime':'Grow'; }
+function coName(co){ return co==='pupik'?'Pupik':'Grow'; }
 function buildSbar({company,view,period,count,rows}){
   let warn = '';
   // Detect skew: if months mode and one month has >60% of total cash
@@ -1294,6 +1348,7 @@ function buildSbar({company,view,period,count,rows}){
     <span>View: <b>${view}</b></span>
     <span>Period: <b>${period}</b></span>
     <span>Records: <b>${count}</b></span>
+    <div class="sbar-actions"></div>
   </div>`;
 }
 // fmt for general use (returns — for null/empty)
@@ -1309,42 +1364,172 @@ function act2(id,v){ document.getElementById(id)?.classList.toggle('active',v); 
 function clrAct(ids){ ids.forEach(id=>document.getElementById(id)?.classList.remove('active')); }
 // ── CSV Export ────────────────────────────────────────────────
 function injectDlButtons() {
+  // Inject search box + Export All button into sbar-actions (once per render)
+  const actions = document.querySelector('#main .sbar-actions');
+  if (actions && !actions.querySelector('.sbar-search')) {
+    const srch = document.createElement('input');
+    srch.type = 'text';
+    srch.placeholder = '🔍 Search…';
+    srch.className = 'sbar-search';
+    srch.oninput = () => {
+      const q = srch.value.toLowerCase().trim();
+      document.querySelectorAll('#main .section').forEach(sec => {
+        const name = (sec.dataset.exportName || '').toLowerCase();
+        const id   = (sec.dataset.exportId   || '').toLowerCase();
+        sec.style.display = (!q || name.includes(q) || id.includes(q)) ? '' : 'none';
+      });
+    };
+    actions.insertBefore(srch, actions.firstChild);
+
+    const expBtn = document.createElement('button');
+    expBtn.className = 'dl-btn';
+    expBtn.textContent = '📥 Export All';
+    expBtn.onclick = exportAll;
+    actions.insertBefore(expBtn, srch.nextSibling);
+  }
+
+  // Per-table dl-bar buttons
   document.querySelectorAll('#main .tw').forEach(tw => {
     if (tw.previousElementSibling?.classList.contains('dl-bar')) return;
     const bar = document.createElement('div');
     bar.className = 'dl-bar';
-    // Only show Chart button if the table has a data-pie-cash column
     const hasPie = tw.querySelector('th[data-pie-cash]');
+    const hasBar = tw.dataset.barChart === '1';
     bar.innerHTML = '<button class="dl-btn" onclick="dlTable(this)">📥 Export CSV</button>' +
-      (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '');
+      (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '') +
+      (hasBar  ? ' <button class="dl-btn" onclick="dlCashBar(this)">📊 Chart</button>'  : '');
     tw.parentNode.insertBefore(bar, tw);
   });
 }
-function dlTable(btn) {
-  const tw = btn.closest('.dl-bar').nextElementSibling;
-  const table = tw?.querySelector('table');
-  if (!table) return;
-  dlCSV(table);
+
+// Escape a value for CSV
+function csvCell(text) {
+  const s = String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r'))
+    return '"' + s.replace(/"/g, '""') + '"';
+  return s;
 }
-function dlCSV(table) {
-  const rows = [...table.querySelectorAll('tr')];
-  const csv = rows.map(row => {
-    return [...row.querySelectorAll('th,td')].map(c => {
-      const clone = c.cloneNode(true);
-      clone.querySelectorAll('.si').forEach(el => el.remove());
-      let text = clone.textContent.replace(/\s+/g, ' ').trim();
-      if (text.includes(',') || text.includes('"') || text.includes('\n'))
-        text = '"' + text.replace(/"/g, '""') + '"';
-      return text;
-    }).join(',');
-  }).join('\r\n');
+
+function _downloadCSV(csv, filename) {
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = filename || `export_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function dlTable(btn) {
+  const tw = btn.closest('.dl-bar').nextElementSibling;
+  const table = tw?.querySelector('table');
+  if (!table) return;
+  // Prepend name/id row from parent section (if any)
+  const prependRows = [];
+  const section = tw.closest('.section');
+  if (section) {
+    const name = section.dataset.exportName || '';
+    const id   = section.dataset.exportId   || '';
+    if (name || id) prependRows.push([name, id]);
+  }
+  dlCSV(table, prependRows);
+}
+
+// Returns true if table has monthly combined cash/qty cells
+function _isMonthlyTable(table) {
+  return [...table.querySelectorAll('thead th')].some(th => {
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.si').forEach(e => e.remove());
+    return c.textContent.includes('cash/qty');
+  });
+}
+
+// Build CSV string for a simple (non-monthly) table
+function _buildStdCSV(table, prependRows) {
+  const rows = [...table.querySelectorAll('tr')];
+  const lines = prependRows.map(r => r.map(csvCell).join(','));
+  rows.forEach(row => {
+    lines.push([...row.querySelectorAll('th,td')].map(c => {
+      const clone = c.cloneNode(true);
+      clone.querySelectorAll('.si').forEach(el => el.remove());
+      return csvCell(clone.textContent);
+    }).join(','));
+  });
+  return lines.join('\r\n');
+}
+
+// Build CSV string for a monthly combined table — two sections: CASH and QTY
+function _buildSplitCSV(table, prependRows) {
+  const ths = [...table.querySelectorAll('thead th')];
+  const n = ths.length;
+  const headerTexts = ths.map(th => {
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.si').forEach(e => e.remove());
+    return c.textContent.trim().replace(/\s+/g, ' ');
+  });
+  const cleanHdrs = headerTexts.map(h => h.replace(/\s*\(cash\/qty\)/i, '').trim());
+  const cashHdrs = cleanHdrs.slice(0, n - 1);
+  const qtyHdrs  = [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
+  const allRows  = [...table.querySelectorAll('tbody tr, tfoot tr')];
+
+  function buildLines(mode) {
+    const lines = prependRows.map(r => r.map(csvCell).join(','));
+    lines.push((mode === 'cash' ? cashHdrs : qtyHdrs).map(csvCell).join(','));
+    allRows.forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      const out = [];
+      cells.forEach((td, i) => {
+        if (mode === 'cash' && i === n - 1) return;
+        if (mode === 'qty'  && i === n - 2) return;
+        if (i <= 1) {
+          const c = td.cloneNode(true);
+          c.querySelectorAll('.si, .cm').forEach(e => e.remove());
+          out.push(csvCell(c.textContent));
+        } else if (i >= 2 && i <= n - 3) {
+          out.push(csvCell(mode === 'cash'
+            ? (td.dataset.cash ?? td.dataset.sv ?? '0')
+            : (td.dataset.qty ?? '0')));
+        } else {
+          out.push(csvCell(td.dataset.sv !== undefined ? td.dataset.sv
+            : td.textContent.replace(/,/g, '').trim()));
+        }
+      });
+      lines.push(out.join(','));
+    });
+    return lines.join('\r\n');
+  }
+  return '--- CASH ---\r\n' + buildLines('cash') + '\r\n\r\n--- QTY ---\r\n' + buildLines('qty');
+}
+
+function dlCSV(table, prependRows = []) {
+  _downloadCSV(_isMonthlyTable(table)
+    ? _buildSplitCSV(table, prependRows)
+    : _buildStdCSV(table, prependRows));
+}
+
+// Export ALL visible tables in the current report to one CSV file
+function exportAll() {
+  const tws = [...document.querySelectorAll('#main .tw')].filter(tw => {
+    const sec = tw.closest('.section');
+    return !sec || sec.style.display !== 'none';
+  });
+  if (!tws.length) return;
+  const parts = [];
+  tws.forEach(tw => {
+    const table = tw.querySelector('table');
+    if (!table) return;
+    const prependRows = [];
+    const sec = tw.closest('.section');
+    if (sec) {
+      const name = sec.dataset.exportName || '';
+      const id   = sec.dataset.exportId   || '';
+      if (name || id) prependRows.push([name, id]);
+    }
+    parts.push(_isMonthlyTable(table)
+      ? _buildSplitCSV(table, prependRows)
+      : _buildStdCSV(table, prependRows));
+  });
+  _downloadCSV(parts.join('\r\n\r\n'), `export_all_${new Date().toISOString().slice(0,10)}.csv`);
 }
 
 // ── Column sort ───────────────────────────────────────────────
@@ -1390,7 +1575,13 @@ const PIE_COLORS = [
   '#4f7ef8','#7c3aed','#22c55e','#f59e0b','#ef4444',
   '#06b6d4','#ec4899','#84cc16','#f97316','#a855f7',
   '#14b8a6','#e11d48','#0ea5e9','#d97706','#10b981',
-  '#6366f1','#b45309','#be185d','#047857','#9333ea'
+  '#6366f1','#b45309','#be185d','#047857','#9333ea',
+  '#38bdf8','#fb7185','#4ade80','#facc15','#c084fc',
+  '#2dd4bf','#f472b6','#a3e635','#fb923c','#818cf8',
+  '#34d399','#fecdd3','#67e8f9','#fde68a','#d8b4fe',
+  '#6ee7b7','#fda4af','#a5f3fc','#fef08a','#e9d5ff',
+  '#86efac','#fecaca','#bae6fd','#fed7aa','#f5d0fe',
+  '#4dd4ac','#c4b5fd','#86d9f0','#fbbf24','#f87171',
 ];
 
 // Build [{label, value}] of cash by itemSKU from a rows array
@@ -1411,13 +1602,13 @@ let _pieModalChart = null;
 
 function attachPieButton(entries, chartTitle) {
   _lastPie = { entries, chartTitle };
-  const sbar = document.querySelector('#main .sbar');
-  if (!sbar || sbar.querySelector('.sbar-chart-btn')) return;
+  const actions = document.querySelector('#main .sbar-actions');
+  if (!actions || actions.querySelector('.sbar-chart-btn')) return;
   const btn = document.createElement('button');
   btn.className = 'sbar-chart-btn';
   btn.textContent = '📊 Chart';
   btn.onclick = openPieModal;
-  sbar.appendChild(btn);
+  actions.appendChild(btn);
 }
 
 // ── Chart button per table ────────────────────────────────────
@@ -1425,6 +1616,9 @@ function dlTablePie(btn) {
   const tw = btn.closest('.dl-bar').nextElementSibling;
   const table = tw?.querySelector('table');
   if (!table) return;
+
+  // Monthly combined tables → bar chart per month instead of pie
+  if (_isMonthlyTable(table)) { _dlMonthBarChart(table, tw); return; }
 
   // Find the cash and qty columns
   const headers = [...table.querySelectorAll('thead th')];
@@ -1481,6 +1675,131 @@ function getTableTitle(tw) {
   return 'Cash Distribution';
 }
 
+// ── Bar chart: monthly combined tables (items/clients in months mode) ────
+function _dlMonthBarChart(table, tw) {
+  const ths = [...table.querySelectorAll('thead th')];
+  const n = ths.length;
+  // Month columns: index 2 … n-3  (col0=id, col1=name, last2=total cash/qty)
+  const months = ths.slice(2, n - 2).map(th => {
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.si').forEach(e => e.remove());
+    return c.textContent.replace(/\s*\(cash\/qty\)/i, '').trim();
+  });
+  // Read totals per month from the tfoot row (has data-cash / data-qty set)
+  const cashVals = [], qtyVals = [];
+  const footRow = table.querySelector('tfoot tr');
+  if (footRow) {
+    const cells = [...footRow.querySelectorAll('td')];
+    months.forEach((_, mi) => {
+      const td = cells[mi + 2];
+      cashVals.push(parseFloat(td?.dataset.cash ?? '0') || 0);
+      qtyVals.push(parseFloat(td?.dataset.qty  ?? '0') || 0);
+    });
+  } else {
+    months.forEach(() => { cashVals.push(0); qtyVals.push(0); });
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      months.forEach((_, mi) => {
+        const td = cells[mi + 2];
+        cashVals[mi] += parseFloat(td?.dataset.cash ?? '0') || 0;
+        qtyVals[mi]  += parseFloat(td?.dataset.qty  ?? '0') || 0;
+      });
+    });
+  }
+  _showBarModal(months, cashVals, qtyVals, getTableTitle(tw));
+}
+
+// ── Bar chart: cash summary table (renderCashTable months mode) ──────────
+function dlCashBar(btn) {
+  const tw = btn.closest('.dl-bar').nextElementSibling;
+  const table = tw?.querySelector('table');
+  if (!table) return;
+  const ths = [...table.querySelectorAll('thead th')];
+  // Skip first (Metric) and last (Total) columns
+  const months = ths.slice(1, -1).map(th => th.textContent.trim());
+  const bodyRows = [...table.querySelectorAll('tbody tr')];
+  const cashRow  = bodyRows.find(r => r.cells[0]?.textContent.includes('Cash'));
+  const qtyRow   = bodyRows.find(r => r.cells[0]?.textContent.includes('Qty'));
+  const cashVals = cashRow
+    ? [...cashRow.cells].slice(1, -1).map(td => parseFloat(td.textContent.replace(/,/g,'')) || 0)
+    : months.map(() => 0);
+  const qtyVals  = qtyRow
+    ? [...qtyRow.cells].slice(1, -1).map(td => parseFloat(td.textContent.replace(/,/g,'')) || 0)
+    : months.map(() => 0);
+  _showBarModal(months, cashVals, qtyVals, getTableTitle(tw));
+}
+
+// ── Bar chart modal renderer ──────────────────────────────────────────────
+function _showBarModal(months, cashVals, qtyVals, title) {
+  const total    = cashVals.reduce((s, v) => s + v, 0);
+  const totalQty = qtyVals.reduce((s, v) => s + v, 0);
+
+  document.getElementById('pieModalTitle').textContent = title;
+  document.getElementById('pieModalSub').textContent   = `${months.length} month${months.length === 1 ? '' : 's'}`;
+  document.getElementById('pieModalTotal').textContent = fmt(total);
+
+  const pieTable = document.querySelector('#pieModal .pie-tbl');
+  pieTable.querySelector('thead tr').innerHTML =
+    '<th>#</th><th>Month</th>' +
+    '<th style="text-align:right">Cash</th>' +
+    '<th style="text-align:right">Qty</th>' +
+    '<th style="text-align:right">Share</th>';
+  pieTable.querySelector('tfoot tr').innerHTML =
+    `<td colspan="2">Total</td>` +
+    `<td style="text-align:right">${fmt(total)}</td>` +
+    `<td style="text-align:right;color:var(--muted)">${fmt(totalQty)}</td>` +
+    `<td style="text-align:right;color:var(--acc)">100%</td>`;
+
+  const tbody = document.getElementById('pieModalTbody');
+  tbody.innerHTML = months.map((m, i) => {
+    const pct = total > 0 ? ((cashVals[i] / total) * 100).toFixed(1) : '0.0';
+    return `<tr>
+      <td style="text-align:center;color:var(--muted)">${i + 1}</td>
+      <td><span class="pie-dot-sm" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></span>${esc(m)}</td>
+      <td style="text-align:right">${fmt(cashVals[i])}</td>
+      <td style="text-align:right;color:var(--muted)">${fmt(qtyVals[i])}</td>
+      <td style="text-align:right;color:var(--acc);font-weight:700">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pieModal').style.display = 'flex';
+  if (_pieModalChart) { _pieModalChart.destroy(); _pieModalChart = null; }
+
+  const ctx = document.getElementById('pieModalCanvas').getContext('2d');
+  _pieModalChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Cash',
+        data: cashVals,
+        backgroundColor: months.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
+        borderColor: '#1a1d27',
+        borderWidth: 1,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `  ${fmt(ctx.raw)}` } }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#7b82a8', font: { size: 11 } },
+          grid:  { color: 'rgba(46,51,80,.4)' }
+        },
+        y: {
+          ticks: { color: '#7b82a8', font: { size: 11 }, callback: v => fmt(v) },
+          grid:  { color: 'rgba(46,51,80,.4)' }
+        }
+      }
+    }
+  });
+}
+
 // ── Open modal (top-of-page button) ──────────────────────────
 function openPieModal() {
   if (!_lastPie) return;
@@ -1489,7 +1808,7 @@ function openPieModal() {
 
 // ── Core modal renderer ───────────────────────────────────────
 function _showPieModal(entries, chartTitle) {
-  const TOP = 20;
+  const TOP = 50;
 
   let data = entries.filter(e => e.value > 0).sort((a, b) => b.value - a.value);
   if (!data.length) return;
@@ -1519,7 +1838,7 @@ function _showPieModal(entries, chartTitle) {
   // Populate modal header
   document.getElementById('pieModalTitle').textContent = chartTitle;
   document.getElementById('pieModalSub').textContent =
-    data.length > TOP ? `Top ${TOP} of ${data.length} shown` : `${data.length} entries`;
+    data.length > TOP ? `Top ${TOP} of ${data.length} shown` : `${data.length} entr${data.length===1?'y':'ies'}`;
   document.getElementById('pieModalTotal').textContent = fmt(total);
 
   // Update thead and tfoot dynamically based on whether SKU column is present
@@ -1607,6 +1926,13 @@ function _showPieModal(entries, chartTitle) {
 
 function closePieModal() {
   document.getElementById('pieModal').style.display = 'none';
+}
+
+function dlPieModalCSV() {
+  const table = document.querySelector('#pieModal .pie-tbl');
+  if (!table) return;
+  const title = document.getElementById('pieModalTitle').textContent || 'chart';
+  dlCSV(table, [[title]]);
 }
 
 function pieOverlayClick(e) {
