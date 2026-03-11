@@ -251,8 +251,13 @@ main { flex: 1; padding: 22px 24px; overflow-y: auto; }
   color: var(--muted);
   align-items: center;
   flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: box-shadow .2s;
 }
 .sbar b { color: var(--txt); }
+.sbar--stuck { box-shadow: 0 4px 12px rgba(0,0,0,.18); border-radius: 0 0 var(--r) var(--r); }
 .sbar-legend { margin-left: auto; display: flex; gap: 10px; font-size: .72rem; }
 .leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
 
@@ -782,6 +787,17 @@ if (window.__DASHBOARD_DATA__) {
     });
 }
 // Priority 3: file:// with no data_loader.js → welcome screen shown by default
+
+// ── Sticky sbar shadow ────────────────────────────────────────
+(function() {
+  const mainEl = document.getElementById('main');
+  if (!mainEl) return;
+  mainEl.addEventListener('scroll', function() {
+    const sbar = mainEl.querySelector('.sbar');
+    if (!sbar) return;
+    sbar.classList.toggle('sbar--stuck', mainEl.scrollTop > 4);
+  }, { passive: true });
+})();
 
 function onDateChg() {
   // type="date" inputs return YYYY-MM-DD directly — no parsing needed
