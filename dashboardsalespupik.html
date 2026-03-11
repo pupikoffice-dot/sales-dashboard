@@ -1427,15 +1427,13 @@ function dlTable(btn) {
   const tw = btn.closest('.dl-bar').nextElementSibling;
   const table = tw?.querySelector('table');
   if (!table) return;
-  // Prepend name/id row from parent section (if any)
-  const prependRows = [];
   const section = tw.closest('.section');
-  if (section) {
-    const name = section.dataset.exportName || '';
-    const id   = section.dataset.exportId   || '';
-    if (name || id) prependRows.push([name, id]);
-  }
-  dlCSV(table, prependRows);
+  const id   = section?.dataset.exportId   || '';
+  const name = section?.dataset.exportName || '';
+  const csv = _isMonthlyTable(table)
+    ? _buildFlatSplitCSV([{id, name, table}])
+    : _buildFlatCSV([{id, name, table}]);
+  _downloadCSV(csv);
 }
 
 // Returns true if table has monthly combined cash/qty cells
@@ -1510,29 +1508,119 @@ function dlCSV(table, prependRows = []) {
     : _buildStdCSV(table, prependRows));
 }
 
-// Export ALL visible tables in the current report to one CSV file
+// ── Flat CSV builders (ID/SKU col A, Name col B, then data) ──
+
+// Single flat table — all sections merged, header written once.
+// sectionData = [{id, name, table}]
+function _buildFlatCSV(sectionData) {
+  const lines = [];
+  let hdrDone = false;
+  sectionData.forEach(({id, name, table}) => {
+    [...table.querySelectorAll('tr')].forEach(row => {
+      const isHdr = row.querySelectorAll('th').length > 0;
+      if (isHdr && hdrDone) return;
+      const cells = [...row.querySelectorAll('th,td')].map(c => {
+        const cl = c.cloneNode(true);
+        cl.querySelectorAll('.si').forEach(e => e.remove());
+        return csvCell(cl.textContent);
+      });
+      if (isHdr) {
+        lines.push([csvCell('ID / SKU'), csvCell('Name'), ...cells].join(','));
+        hdrDone = true;
+      } else {
+        lines.push([csvCell(id), csvCell(name), ...cells].join(','));
+      }
+    });
+  });
+  return lines.join('\r\n');
+}
+
+// Flat split CSV for monthly tables — CASH section then QTY section.
+// sectionData = [{id, name, table}]
+function _buildFlatSplitCSV(sectionData) {
+  function buildPart(mode) {
+    const lines = [];
+    let hdrDone = false;
+    sectionData.forEach(({id, name, table}) => {
+      const ths = [...table.querySelectorAll('thead th')];
+      const n   = ths.length;
+      const cleanHdrs = ths.map(th => {
+        const c = th.cloneNode(true);
+        c.querySelectorAll('.si').forEach(e => e.remove());
+        return c.textContent.trim().replace(/\s+/g, ' ').replace(/\s*\(cash\/qty\)/i, '').trim();
+      });
+      if (!hdrDone) {
+        const hdrs = mode === 'cash'
+          ? cleanHdrs.slice(0, n - 1)
+          : [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
+        lines.push([csvCell('ID / SKU'), csvCell('Name'), ...hdrs.map(csvCell)].join(','));
+        hdrDone = true;
+      }
+      [...table.querySelectorAll('tbody tr, tfoot tr')].forEach(row => {
+        const cells = [...row.querySelectorAll('td')];
+        const out = [];
+        cells.forEach((td, i) => {
+          if (mode === 'cash' && i === n - 1) return;
+          if (mode === 'qty'  && i === n - 2) return;
+          if (i <= 1) {
+            const c = td.cloneNode(true);
+            c.querySelectorAll('.si, .cm').forEach(e => e.remove());
+            out.push(csvCell(c.textContent));
+          } else if (i >= 2 && i <= n - 3) {
+            out.push(csvCell(mode === 'cash'
+              ? (td.dataset.cash ?? td.dataset.sv ?? '0')
+              : (td.dataset.qty  ?? '0')));
+          } else {
+            out.push(csvCell(td.dataset.sv !== undefined
+              ? td.dataset.sv
+              : td.textContent.replace(/,/g, '').trim()));
+          }
+        });
+        lines.push([csvCell(id), csvCell(name), ...out].join(','));
+      });
+    });
+    return lines.join('\r\n');
+  }
+  return '--- CASH ---\r\n' + buildPart('cash') + '\r\n\r\n--- QTY ---\r\n' + buildPart('qty');
+}
+
+// Export ALL visible sections into one flat CSV file
 function exportAll() {
-  const tws = [...document.querySelectorAll('#main .tw')].filter(tw => {
-    const sec = tw.closest('.section');
-    return !sec || sec.style.display !== 'none';
-  });
-  if (!tws.length) return;
-  const parts = [];
-  tws.forEach(tw => {
-    const table = tw.querySelector('table');
+  const sections = [...document.querySelectorAll('#main .section')]
+    .filter(s => s.style.display !== 'none');
+  if (!sections.length) return;
+
+  const sectionData = [];
+  let anyMonthly = false, anyStd = false;
+
+  sections.forEach(sec => {
+    const table = sec.querySelector('.tw table');
     if (!table) return;
-    const prependRows = [];
-    const sec = tw.closest('.section');
-    if (sec) {
-      const name = sec.dataset.exportName || '';
-      const id   = sec.dataset.exportId   || '';
-      if (name || id) prependRows.push([name, id]);
-    }
-    parts.push(_isMonthlyTable(table)
-      ? _buildSplitCSV(table, prependRows)
-      : _buildStdCSV(table, prependRows));
+    const id   = sec.dataset.exportId   || '';
+    const name = sec.dataset.exportName || '';
+    const isMonthly = _isMonthlyTable(table);
+    if (isMonthly) anyMonthly = true; else anyStd = true;
+    sectionData.push({id, name, table, isMonthly});
   });
-  _downloadCSV(parts.join('\r\n\r\n'), `export_all_${new Date().toISOString().slice(0,10)}.csv`);
+
+  if (!sectionData.length) return;
+
+  let csv;
+  if (anyMonthly && !anyStd) {
+    csv = _buildFlatSplitCSV(sectionData);
+  } else if (anyStd && !anyMonthly) {
+    csv = _buildFlatCSV(sectionData);
+  } else {
+    // Mixed (rare): std and monthly sections present — export separately
+    const stdParts = sectionData.filter(d => !d.isMonthly);
+    const mthParts = sectionData.filter(d =>  d.isMonthly);
+    const parts = [];
+    if (stdParts.length) parts.push(_buildFlatCSV(stdParts));
+    if (mthParts.length) parts.push(_buildFlatSplitCSV(mthParts));
+    csv = parts.join('\r\n\r\n');
+  }
+
+  _downloadCSV(csv, `export_all_${new Date().toISOString().slice(0,10)}.csv`);
 }
 
 // ── Column sort ───────────────────────────────────────────────
