@@ -911,8 +911,8 @@ function buildCatList() {
   const rows = S.raw.filter(r => r.company === S.co);
   const cats = new Set();
   rows.forEach(r => {
-    const v = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
-    if (v) cats.add(v);
+    const v = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
+    cats.add(v);
   });
   const list = document.getElementById('catList');
   list.innerHTML = '';
@@ -935,13 +935,13 @@ function buildItemList() {
   const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c => c.value));
   const rows = S.raw.filter(r => {
     if (r.company !== S.co) return false;
-    const cat = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
+    const cat = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
     return selCats.has(cat);
   });
   const items = {};
   rows.forEach(r => {
-    if (!r.itemSKU) return;
-    if (!items[r.itemSKU]) items[r.itemSKU] = r.itemName || r.itemSKU;
+    const sku = r.itemSKU || '(No SKU)';
+    if (!items[sku]) items[sku] = r.itemName || sku;
   });
   const list = document.getElementById('itemList');
   list.innerHTML = '';
@@ -1177,8 +1177,8 @@ function renderItems(coRows) {
   const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c=>c.value));
   const selSKUs = new Set([...document.querySelectorAll('#itemList input:checked')].map(c=>c.value));
   const rows = coRows.filter(r => {
-    const cat = S.catType==='tablet' ? r.tabletCat : r.groupCat;
-    return selCats.has(cat) && selSKUs.has(r.itemSKU);
+    const cat = (S.catType==='tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
+    return selCats.has(cat) && selSKUs.has(r.itemSKU || '(No SKU)');
   });
   if (!rows.length) { showMain('<div class="err">No data for selected items in the chosen period.</div>'); return; }
 
@@ -1192,9 +1192,9 @@ function renderItems(coRows) {
   } else {
     const items = {};
     rows.forEach(r => {
-      if (!r.itemSKU) return;
-      if (!items[r.itemSKU]) items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
-      items[r.itemSKU].rows.push(r);
+      const sku = r.itemSKU || '(No SKU)';
+      if (!items[sku]) items[sku]={name:r.itemName||sku,rows:[]};
+      items[sku].rows.push(r);
     });
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it],i)=>{
       const {cash,qty}=sumRows(it.rows);
@@ -1212,9 +1212,9 @@ function renderItems(coRows) {
 function renderItemsSummaryTable(rows) {
   const items = {};
   rows.forEach(r=>{
-    if(!r.itemSKU)return;
-    if(!items[r.itemSKU])items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
-    items[r.itemSKU].rows.push(r);
+    const sku = r.itemSKU || '(No SKU)';
+    if(!items[sku])items[sku]={name:r.itemName||sku,rows:[]};
+    items[sku].rows.push(r);
   });
   if (S.dateMode==='range') {
     let h=`<div class="tw"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
