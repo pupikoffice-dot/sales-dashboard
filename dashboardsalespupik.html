@@ -42,6 +42,8 @@ header h1 { font-size: 1.2rem; font-weight: 700; }
 .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .data-badge { background: var(--sur2); border: 1px solid var(--bdr); border-radius: 20px; padding: 3px 14px; font-size: .72rem; color: var(--muted); }
 .data-badge b { color: var(--acc); }
+.refresh-btn { background: var(--sur2); border: 1px solid var(--bdr); color: var(--txt); border-radius: 20px; padding: 3px 14px; font-size: .72rem; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background .15s; }
+.refresh-btn:hover { background: var(--acc); color: #fff; border-color: var(--acc); }
 
 /* ── Layout ── */
 .shell { display: flex; min-height: calc(100vh - 53px); }
@@ -519,6 +521,7 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
     <div class="sub">Pupik · Grow</div>
   </div>
   <div class="hdr-right">
+    <button class="refresh-btn" onclick="refreshData()" title="Reload data_loader.js / data.json from disk">🔄 Refresh</button>
     <div class="data-badge" id="dataBadge">No data loaded</div>
   </div>
 </header>
@@ -727,6 +730,13 @@ function loadFile(input) {
     catch(err) { alert('Error reading JSON: ' + err.message); }
   };
   reader.readAsText(file);
+}
+
+// ══ Refresh ══════════════════════════════════════════════════
+// Reloads the page so data_loader.js (written by the VBA macro) is
+// re-executed from disk, picking up the latest data.json content.
+function refreshData() {
+  location.reload();
 }
 
 // ── Auto-load data ────────────────────────────────────────────
