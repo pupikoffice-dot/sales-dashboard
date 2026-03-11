@@ -271,6 +271,25 @@ main { flex: 1; padding: 22px 24px; overflow-y: auto; }
   gap: 8px;
   color: var(--txt);
 }
+/* ── Open Orders document blocks ── */
+.oo-doc { margin-bottom: 12px; }
+.oo-doc:last-child { margin-bottom: 0; }
+.oo-doc-hdr {
+  padding: 5px 12px;
+  background: rgba(79,126,248,.10);
+  border: 1px solid rgba(79,126,248,.25);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  font-size: .8rem;
+  font-weight: 600;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.oo-doc-hdr .oo-lbl { color: var(--muted); font-weight: 400; }
+.oo-doc .tw { border-radius: 0 0 6px 6px; }
+
 .tw { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bdr); }
 table { width: 100%; border-collapse: collapse; font-size: .8rem; }
 thead th {
@@ -1127,23 +1146,85 @@ function renderClients(coRows) {
 }
 
 // ══ Render: Open Orders ══════════════════════════════════════
-// All rows with company==='openorders' from 791pupik.xls.
-// No date filter, no client filter — shows every client with items underneath.
+// Two-level layout: Client → Documents → Items
+//   Client header  : name, ID, agent, total qty, total cash
+//   Document block : doc#, date, then a flat SKU/name/qty/cash table
 function renderOpenOrders(rows) {
+
+  // Helper: YYYY-MM-DD → DD/MM/YYYY
+  function fmtDMY(s) {
+    if (!s || s.length < 10) return s || '';
+    return s.slice(8,10) + '/' + s.slice(5,7) + '/' + s.slice(0,4);
+  }
+
+  // ── Group by client ──────────────────────────────────────────
   const clients = {};
   rows.forEach(r => {
-    if (!clients[r.clientID]) clients[r.clientID] = { name: r.clientName || r.clientID, rows: [] };
-    clients[r.clientID].rows.push(r);
+    const cid = r.clientID || '—';
+    if (!clients[cid]) clients[cid] = { name: r.clientName || cid, agent: r.agent || '', rows: [] };
+    clients[cid].rows.push(r);
   });
 
   const count = Object.keys(clients).length;
-  let html = buildSbar({ company: 'Open Orders', view: 'Clients', period: 'Open Orders', count, rows });
+  let html = buildSbar({ company: 'Open Orders', view: 'Documents', period: 'Open Orders', count, rows });
 
   Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
     const { cash, qty } = sumRows(cl.rows);
-    const label = `${cl.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${cid}</span>`;
-    const body  = renderItemsUnderClient(cl.rows);
-    html += makeSection('📋', label, `oo${i}`, cash, qty, body, cl.name, cid);
+
+    // Section title: name + id + agent
+    const label = `${esc(cl.name)}
+      <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${esc(cid)}</span>
+      <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:10px">· Agent: ${esc(cl.agent||'—')}</span>`;
+
+    // ── Group this client's rows by document ─────────────────
+    const docs = {};
+    cl.rows.forEach(r => {
+      const key = r.docNum || '—';
+      if (!docs[key]) docs[key] = { date: r.dateVal, rows: [] };
+      docs[key].rows.push(r);
+    });
+
+    // ── Build one block per document ─────────────────────────
+    let body = '';
+    Object.entries(docs).forEach(([docNum, doc]) => {
+      const { cash: dc, qty: dq } = sumRows(doc.rows);
+
+      // Document header bar
+      body += `<div class="oo-doc">
+        <div class="oo-doc-hdr">
+          <span>📄 <b>${esc(docNum)}</b></span>
+          <span><span class="oo-lbl">Date: </span><b>${fmtDMY(doc.date)}</b></span>
+          <span><span class="oo-lbl">Qty: </span><b>${fmt(dq)}</b></span>
+          <span><span class="oo-lbl">Cash: </span><b>${fmt(dc)}</b></span>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th style="text-align:left">SKU</th>
+            <th style="text-align:left">Item Name</th>
+            <th>Qty</th>
+            <th>Cash</th>
+          </tr></thead>
+          <tbody>`;
+
+      doc.rows.forEach(r => {
+        body += `<tr>
+          <td>${esc(r.itemSKU||'')}</td>
+          <td title="${esc(r.itemName||'')}">${esc(r.itemName||'')}</td>
+          <td data-sv="${r.qty}">${fmt(r.qty)}</td>
+          <td data-sv="${r.cash}">${fmt(r.cash)}</td>
+        </tr>`;
+      });
+
+      body += `</tbody>
+          <tfoot><tr>
+            <td>—</td><td>Total</td>
+            <td>${fmt(dq)}</td><td>${fmt(dc)}</td>
+          </tr></tfoot>
+        </table></div>
+      </div>`;
+    });
+
+    html += makeSection('👤', label, `oo${i}`, cash, qty, body, cl.name, cid);
   });
 
   showMain(html);
