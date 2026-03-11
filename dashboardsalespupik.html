@@ -1430,10 +1430,12 @@ function dlTable(btn) {
   const section = tw.closest('.section');
   const id   = section?.dataset.exportId   || '';
   const name = section?.dataset.exportName || '';
-  const csv = _isMonthlyTable(table)
-    ? _buildFlatSplitCSV([{id, name, table}])
-    : _buildFlatCSV([{id, name, table}]);
-  _downloadCSV(csv);
+  if (_isMonthlyTable(table)) {
+    const {cashRows, qtyRows} = _extractFlatSplitRows([{id, name, table}]);
+    _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}]);
+  } else {
+    _downloadCSV(_buildFlatCSV([{id, name, table}]));
+  }
 }
 
 // Returns true if table has monthly combined cash/qty cells
@@ -1535,11 +1537,12 @@ function _buildFlatCSV(sectionData) {
   return lines.join('\r\n');
 }
 
-// Flat split CSV for monthly tables — CASH section then QTY section.
+// Extract monthly split data as JS arrays (for XLS export).
+// Returns {cashRows: [[...], ...], qtyRows: [[...], ...]}
 // sectionData = [{id, name, table}]
-function _buildFlatSplitCSV(sectionData) {
-  function buildPart(mode) {
-    const lines = [];
+function _extractFlatSplitRows(sectionData) {
+  function buildRows(mode) {
+    const rows = [];
     let hdrDone = false;
     sectionData.forEach(({id, name, table}) => {
       const ths = [...table.querySelectorAll('thead th')];
@@ -1553,7 +1556,7 @@ function _buildFlatSplitCSV(sectionData) {
         const hdrs = mode === 'cash'
           ? cleanHdrs.slice(0, n - 1)
           : [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
-        lines.push([csvCell('ID / SKU'), csvCell('Name'), ...hdrs.map(csvCell)].join(','));
+        rows.push(['ID / SKU', 'Name', ...hdrs]);
         hdrDone = true;
       }
       [...table.querySelectorAll('tbody tr, tfoot tr')].forEach(row => {
@@ -1565,23 +1568,61 @@ function _buildFlatSplitCSV(sectionData) {
           if (i <= 1) {
             const c = td.cloneNode(true);
             c.querySelectorAll('.si, .cm').forEach(e => e.remove());
-            out.push(csvCell(c.textContent));
+            out.push(c.textContent.trim());
           } else if (i >= 2 && i <= n - 3) {
-            out.push(csvCell(mode === 'cash'
-              ? (td.dataset.cash ?? td.dataset.sv ?? '0')
-              : (td.dataset.qty  ?? '0')));
+            out.push(Number(mode === 'cash'
+              ? (td.dataset.cash ?? td.dataset.sv ?? 0)
+              : (td.dataset.qty  ?? 0)));
           } else {
-            out.push(csvCell(td.dataset.sv !== undefined
-              ? td.dataset.sv
-              : td.textContent.replace(/,/g, '').trim()));
+            const v = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g, '').trim();
+            out.push(v !== '' && !isNaN(v) ? Number(v) : v);
           }
         });
-        lines.push([csvCell(id), csvCell(name), ...out].join(','));
+        rows.push([id, name, ...out]);
       });
     });
-    return lines.join('\r\n');
+    return rows;
   }
-  return '--- CASH ---\r\n' + buildPart('cash') + '\r\n\r\n--- QTY ---\r\n' + buildPart('qty');
+  return { cashRows: buildRows('cash'), qtyRows: buildRows('qty') };
+}
+
+// Download a multi-sheet Excel file (SpreadsheetML .xls — no library needed).
+// sheetsData = [{name: 'Cash', rows: [[...], ...]}, ...]
+function _downloadXLS(sheetsData, filename) {
+  function xe(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  let xml =
+    `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n` +
+    `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n` +
+    `  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n` +
+    `<Styles>\n` +
+    `  <Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2d3561" ss:Pattern="Solid"/></Style>\n` +
+    `</Styles>\n`;
+  sheetsData.forEach(({name, rows}) => {
+    xml += `<Worksheet ss:Name="${xe(name)}">\n<Table>\n`;
+    rows.forEach((row, ri) => {
+      xml += '  <Row>';
+      row.forEach(cell => {
+        const v   = cell ?? '';
+        const num = typeof v === 'number';
+        const sty = ri === 0 ? ' ss:StyleID="h"' : '';
+        xml += num
+          ? `<Cell${sty}><Data ss:Type="Number">${v}</Data></Cell>`
+          : `<Cell${sty}><Data ss:Type="String">${xe(v)}</Data></Cell>`;
+      });
+      xml += '</Row>\n';
+    });
+    xml += `</Table>\n</Worksheet>\n`;
+  });
+  xml += '</Workbook>';
+  const blob = new Blob([xml], {type: 'application/vnd.ms-excel;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = filename || `export_${new Date().toISOString().slice(0,10)}.xls`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 // Export ALL visible sections into one flat CSV file
@@ -1605,22 +1646,20 @@ function exportAll() {
 
   if (!sectionData.length) return;
 
-  let csv;
-  if (anyMonthly && !anyStd) {
-    csv = _buildFlatSplitCSV(sectionData);
-  } else if (anyStd && !anyMonthly) {
-    csv = _buildFlatCSV(sectionData);
-  } else {
-    // Mixed (rare): std and monthly sections present — export separately
-    const stdParts = sectionData.filter(d => !d.isMonthly);
-    const mthParts = sectionData.filter(d =>  d.isMonthly);
-    const parts = [];
-    if (stdParts.length) parts.push(_buildFlatCSV(stdParts));
-    if (mthParts.length) parts.push(_buildFlatSplitCSV(mthParts));
-    csv = parts.join('\r\n\r\n');
-  }
+  const date    = new Date().toISOString().slice(0, 10);
+  const mthData = sectionData.filter(d =>  d.isMonthly);
+  const stdData = sectionData.filter(d => !d.isMonthly);
 
-  _downloadCSV(csv, `export_all_${new Date().toISOString().slice(0,10)}.csv`);
+  if (mthData.length) {
+    // Monthly → XLS with Cash tab and Qty tab
+    const {cashRows, qtyRows} = _extractFlatSplitRows(mthData);
+    _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}],
+                 `export_${date}.xls`);
+  }
+  if (stdData.length) {
+    // Range totals → flat CSV
+    _downloadCSV(_buildFlatCSV(stdData), `export_${date}.csv`);
+  }
 }
 
 // ── Column sort ───────────────────────────────────────────────
