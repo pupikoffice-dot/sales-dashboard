@@ -542,8 +542,9 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
   <div class="panel disabled" id="pDate">
     <div class="panel-title">② Date Filter</div>
     <div class="tab-row">
-      <button class="tab-btn active" id="tRange" onclick="setDateMode('range')">From / To</button>
-      <button class="tab-btn"        id="tMonths" onclick="setDateMode('months')">Months</button>
+      <button class="tab-btn active" id="tRange"      onclick="setDateMode('range')">From / To</button>
+      <button class="tab-btn"        id="tMonths"     onclick="setDateMode('months')">Months</button>
+      <button class="tab-btn"        id="tOpenOrders" onclick="setDateMode('openorders')">📋 Open Orders</button>
     </div>
 
     <!-- Range mode -->
@@ -774,23 +775,27 @@ function selCo(co) {
 // ══ Date mode ════════════════════════════════════════════════
 function setDateMode(m) {
   S.dateMode = m;
-  act2('tRange', m==='range'); act2('tMonths', m==='months');
+  act2('tRange', m==='range'); act2('tMonths', m==='months'); act2('tOpenOrders', m==='openorders');
   document.getElementById('rangeInputs').style.display = m==='range' ? '' : 'none';
   document.getElementById('monthsPicker').classList.toggle('active', m==='months');
-  // Clear the other mode's selections
+  // Clear selections for the modes being left
   if (m === 'range') {
     clearMonths();
   } else {
     S.dateFrom = null; S.dateTo = null;
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
+    if (m === 'openorders') clearMonths(); // open orders needs no date at all
   }
   // Reset all downstream filters (view and below)
   S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
-  if (S.co) on('pView'); else off('pView');
+  // Open Orders: view is automatic — no need to show the View panel
+  if (m === 'openorders') off('pView');
+  else if (S.co)          on('pView');
+  else                    off('pView');
   chkApply();
 }
 
@@ -990,6 +995,24 @@ function filterByDate(rows) {
 
 // ══ Apply ════════════════════════════════════════════════════
 function doApply() {
+  // ── Open Orders: bypass company/date/view selection entirely ──
+  if (S.dateMode === 'openorders') {
+    showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
+    setTimeout(() => {
+      try {
+        const openRows = S.raw.filter(r => r.company === 'openorders');
+        if (!openRows.length) {
+          showMain('<div class="err">No open orders data found. Run the Excel export first.</div>'); return;
+        }
+        renderOpenOrders(openRows);
+      } catch(e) {
+        showMain(`<div class="err">Render error: ${e.message}</div>`);
+        console.error(e);
+      }
+    }, 30);
+    return;
+  }
+
   if (S.dateMode === 'range') {
     if (!S.dateFrom || !S.dateTo) { alert('Please enter valid From and To dates (dd/mm/yyyy).'); return; }
     if (S.dateFrom > S.dateTo)    { alert('From date must be before To date.'); return; }
@@ -1093,9 +1116,41 @@ function renderClients(coRows) {
   );
 }
 
+// ══ Render: Open Orders ══════════════════════════════════════
+// All rows with company==='openorders' from 791pupik.xls.
+// No date filter, no client filter — shows every client with items underneath.
+function renderOpenOrders(rows) {
+  const clients = {};
+  rows.forEach(r => {
+    if (!clients[r.clientID]) clients[r.clientID] = { name: r.clientName || r.clientID, rows: [] };
+    clients[r.clientID].rows.push(r);
+  });
+
+  const count = Object.keys(clients).length;
+  let html = buildSbar({ company: 'Open Orders', view: 'Clients', period: 'Open Orders', count, rows });
+
+  Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
+    const { cash, qty } = sumRows(cl.rows);
+    const label = `${cl.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${cid}</span>`;
+    const body  = renderItemsUnderClient(cl.rows);
+    html += makeSection('📋', label, `oo${i}`, cash, qty, body, cl.name, cid);
+  });
+
+  showMain(html);
+  attachCollapse();
+  injectDlButtons();
+  attachPieButton(
+    Object.entries(clients).map(([, cl]) => {
+      const { cash, qty } = sumRows(cl.rows);
+      return { label: cl.name, value: cash, qty };
+    }),
+    'Cash by Client – Open Orders'
+  );
+}
+
 // ══ Cash table ═══════════════════════════════════════════════
 function renderCashTable(rows) {
-  if (S.dateMode === 'range') {
+  if (S.dateMode === 'range' || S.dateMode === 'openorders') {
     const { cash, qty } = sumRows(rows);
     return `<div class="tw"><table>
       <thead><tr><th style="text-align:left">💰 Total Cash</th><th style="text-align:left">📦 Total Qty</th></tr></thead>
@@ -1136,7 +1191,7 @@ function renderItemsUnderClient(rows) {
     items[r.itemSKU].rows.push(r);
   });
 
-  if (S.dateMode === 'range') {
+  if (S.dateMode === 'range' || S.dateMode === 'openorders') {
     let h = `<div class="tw"><table>
       <thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0, tc=0;
@@ -1258,7 +1313,7 @@ function renderClientsUnderItem(rows) {
     if(!clients[r.clientID])clients[r.clientID]={name:r.clientName||r.clientID,rows:[]};
     clients[r.clientID].rows.push(r);
   });
-  if (S.dateMode==='range') {
+  if (S.dateMode==='range' || S.dateMode==='openorders') {
     let h=`<div class="tw"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0,tc=0;
     Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
@@ -1315,6 +1370,7 @@ function getSortedMonths() {
   });
 }
 function getDateLabel() {
+  if (S.dateMode==='openorders') return 'Open Orders';
   if (S.dateMode==='range') {
     const f=document.getElementById('dateFrom').value;
     const t=document.getElementById('dateTo').value;
@@ -2058,6 +2114,11 @@ function pieOverlayClick(e) {
 }
 
 function chkApply(){
+  // Open Orders needs no company, date or view selection — Run is always ready
+  if (S.dateMode === 'openorders') {
+    document.getElementById('applyBtn').disabled = false;
+    return;
+  }
   const dateOk = S.dateMode==='range'
     ? (S.dateFrom && S.dateTo)
     : S.selMonths.size > 0;
