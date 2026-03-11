@@ -1816,23 +1816,11 @@ function _showPieModal(entries, chartTitle) {
   let data = entries.filter(e => e.value > 0).sort((a, b) => b.value - a.value);
   if (!data.length) return;
 
-  let labels, values, colors, tableRows;
-  const hasOthers = data.length > TOP;
-  if (hasOthers) {
-    const top      = data.slice(0, TOP);
-    const rest     = data.slice(TOP).reduce((s, e) => s + e.value, 0);
-    const restQty  = data.slice(TOP).reduce((s, e) => s + (e.qty || 0), 0);
-    labels    = [...top.map(e => e.label), 'Others'];
-    values    = [...top.map(e => e.value), rest];
-    colors    = [...PIE_COLORS.slice(0, TOP), '#3d4266'];
-    tableRows = [...top.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] })),
-                 { label: `Others (${data.length - TOP} more)`, value: rest, qty: restQty, sku: '', color: '#3d4266' }];
-  } else {
-    labels    = data.map(e => e.label);
-    values    = data.map(e => e.value);
-    colors    = PIE_COLORS.slice(0, data.length);
-    tableRows = data.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] }));
-  }
+  const sliced  = data.slice(0, TOP);
+  let labels    = sliced.map(e => e.label);
+  let values    = sliced.map(e => e.value);
+  let colors    = PIE_COLORS.slice(0, sliced.length);
+  let tableRows = sliced.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] }));
 
   const total    = values.reduce((s, v) => s + v, 0);
   const totalQty = tableRows.reduce((s, r) => s + (r.qty || 0), 0);
@@ -1841,7 +1829,7 @@ function _showPieModal(entries, chartTitle) {
   // Populate modal header
   document.getElementById('pieModalTitle').textContent = chartTitle;
   document.getElementById('pieModalSub').textContent =
-    data.length > TOP ? `Top ${TOP} of ${data.length} shown` : `${data.length} entr${data.length===1?'y':'ies'}`;
+    data.length > TOP ? `Top ${TOP} of ${data.length}` : `${data.length} entr${data.length===1?'y':'ies'}`;
   document.getElementById('pieModalTotal').textContent = fmt(total);
 
   // Update thead and tfoot dynamically based on whether SKU column is present
@@ -1874,12 +1862,11 @@ function _showPieModal(entries, chartTitle) {
   const tbody = document.getElementById('pieModalTbody');
   tbody.innerHTML = tableRows.map((r, i) => {
     const pct = total > 0 ? ((r.value / total) * 100).toFixed(1) : '0.0';
-    const isOthers = hasOthers && i === tableRows.length - 1;
     const skuCell = hasSku
       ? `<td style="text-align:left;color:var(--muted);font-size:.72rem;white-space:nowrap">${esc(r.sku || '—')}</td>`
       : '';
     return `<tr>
-      <td>${isOthers ? '—' : i + 1}</td>
+      <td>${i + 1}</td>
       ${skuCell}<td><span class="pie-dot-sm" style="background:${r.color}"></span>${esc(r.label)}</td>
       <td style="text-align:right">${fmt(r.value)}</td>
       <td style="text-align:right;color:var(--muted)">${fmt(r.qty || 0)}</td>
