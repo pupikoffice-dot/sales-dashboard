@@ -550,10 +550,10 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
     <div class="date-range" id="rangeInputs">
       <label>From</label>
       <input type="date" id="dateFrom" min="2025-01-01" max="2026-12-31"
-             onchange="onDateChg()"/>
+             lang="en-GB" onchange="onDateChg()"/>
       <label>To</label>
       <input type="date" id="dateTo" min="2025-01-01" max="2026-12-31"
-             onchange="onDateChg()"/>
+             lang="en-GB" onchange="onDateChg()"/>
     </div>
 
     <!-- Months mode -->
@@ -1343,11 +1343,14 @@ function buildSbar({company,view,period,count,rows}){
       }
     }
   }
+  const totals = sumRows(rows || []);
   return `${warn}<div class="sbar">
     <span>Company: <b>${company}</b></span>
     <span>View: <b>${view}</b></span>
     <span>Period: <b>${period}</b></span>
     <span>Records: <b>${count}</b></span>
+    <span>Cash: <b>${fmt(totals.cash)}</b></span>
+    <span>Qty: <b>${fmt(totals.qty)}</b></span>
     <div class="sbar-actions"></div>
   </div>`;
 }
