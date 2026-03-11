@@ -252,7 +252,7 @@ main { flex: 1; padding: 22px 24px; overflow-y: auto; }
   align-items: center;
   flex-wrap: wrap;
   position: sticky;
-  top: 0;
+  top: 53px;
   z-index: 50;
   transition: box-shadow .2s;
 }
@@ -789,15 +789,13 @@ if (window.__DASHBOARD_DATA__) {
 // Priority 3: file:// with no data_loader.js → welcome screen shown by default
 
 // ── Sticky sbar shadow ────────────────────────────────────────
-(function() {
-  const mainEl = document.getElementById('main');
-  if (!mainEl) return;
-  mainEl.addEventListener('scroll', function() {
-    const sbar = mainEl.querySelector('.sbar');
-    if (!sbar) return;
-    sbar.classList.toggle('sbar--stuck', mainEl.scrollTop > 4);
-  }, { passive: true });
-})();
+// The window (not main) is the scroll container, so listen on window.
+window.addEventListener('scroll', function() {
+  const sbar = document.querySelector('#main .sbar');
+  if (!sbar) return;
+  // Stuck once the sbar's natural top (header height) has been passed
+  sbar.classList.toggle('sbar--stuck', window.scrollY > 4);
+}, { passive: true });
 
 function onDateChg() {
   // type="date" inputs return YYYY-MM-DD directly — no parsing needed
