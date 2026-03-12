@@ -851,8 +851,8 @@ function setDateMode(m) {
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
-  // Open Orders: view is automatic — no need to show the View panel
-  if (m === 'openorders') off('pView');
+  // Open Orders: company is implicit ('openorders'), so show View immediately
+  if (m === 'openorders') on('pView');
   else if (S.co)          on('pView');
   else                    off('pView');
   chkApply();
@@ -936,7 +936,7 @@ function selView(v) {
 // ══ Client list — FIX: use ALL company rows (not date-filtered)
 //    so list is always populated regardless of date selection   ══
 function buildClientList() {
-  const rows = S.raw.filter(r => r.company === S.co);
+  const rows = S.raw.filter(r => r.company === effCo());
   const clients = {};
   rows.forEach(r => {
     if (!r.clientID) return;
@@ -972,7 +972,7 @@ function selCatType(t) {
 
 function buildCatList() {
   if (!S.catType) return;
-  const rows = S.raw.filter(r => r.company === S.co);
+  const rows = S.raw.filter(r => r.company === effCo());
   const cats = new Set();
   rows.forEach(r => {
     const v = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
@@ -998,7 +998,7 @@ function buildCatList() {
 function buildItemList() {
   const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c => c.value));
   const rows = S.raw.filter(r => {
-    if (r.company !== S.co) return false;
+    if (r.company !== effCo()) return false;
     const cat = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
     return selCats.has(cat);
   });
@@ -1054,7 +1054,7 @@ function filterByDate(rows) {
 
 // ══ Apply ════════════════════════════════════════════════════
 function doApply() {
-  // ── Open Orders: bypass company/date/view selection entirely ──
+  // ── Open Orders: company is implicit, no date filter needed ──
   if (S.dateMode === 'openorders') {
     showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
     setTimeout(() => {
@@ -1063,7 +1063,8 @@ function doApply() {
         if (!openRows.length) {
           showMain('<div class="err">No open orders data found. Run the Excel export first.</div>'); return;
         }
-        renderOpenOrders(openRows);
+        if (S.view === 'clients') renderClients(openRows);
+        else                      renderItems(openRows);
       } catch(e) {
         showMain(`<div class="err">Render error: ${e.message}</div>`);
         console.error(e);
@@ -1154,7 +1155,7 @@ function renderClients(coRows) {
     clients[r.clientID].rows.push(r);
   });
 
-  let html = buildSbar({ company: coName(S.co), view: 'Clients', period: getDateLabel(), count: Object.keys(clients).length, rows });
+  let html = buildSbar({ company: coName(effCo()), view: 'Clients', period: getDateLabel(), count: Object.keys(clients).length, rows });
 
   Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
     const { cash, qty } = sumRows(cl.rows);
@@ -1358,7 +1359,7 @@ function renderItems(coRows) {
   });
   if (!rows.length) { showMain('<div class="err">No data for selected items in the chosen period.</div>'); return; }
 
-  let html = buildSbar({ company: coName(S.co), view: 'Items', period: getDateLabel(), count: selSKUs.size, rows });
+  let html = buildSbar({ company: coName(effCo()), view: 'Items', period: getDateLabel(), count: selSKUs.size, rows });
 
   if (S.itemMode === 'items') {
     html += renderItemsSummaryTable(rows);
@@ -1499,7 +1500,8 @@ function getDateLabel() {
   }
   return getSortedMonths().map(k=>{const[y,m]=k.split('-');return MN[+m-1]+' '+y;}).join(', ');
 }
-function coName(co){ return co==='pupik'?'Pupik':'Grow'; }
+function coName(co){ return co==='pupik'?'Pupik':co==='grow'?'Grow':'Open Orders'; }
+function effCo() { return S.dateMode === 'openorders' ? 'openorders' : S.co; }
 function buildSbar({company,view,period,count,rows}){
   let warn = '';
   // Detect skew: if months mode and one month has >60% of total cash
@@ -2235,9 +2237,11 @@ function pieOverlayClick(e) {
 }
 
 function chkApply(){
-  // Open Orders needs no company, date or view selection — Run is always ready
+  // Open Orders: no date or company needed, but view+mode must be selected
   if (S.dateMode === 'openorders') {
-    document.getElementById('applyBtn').disabled = false;
+    const ready = (S.view==='clients' && S.clientMode) ||
+                  (S.view==='items' && S.catType && S.itemMode);
+    document.getElementById('applyBtn').disabled = !ready;
     return;
   }
   const dateOk = S.dateMode==='range'
