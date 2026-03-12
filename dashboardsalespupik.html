@@ -760,7 +760,23 @@ function loadFile(input) {
 // Reloads the page so data_loader.js (written by the VBA macro) is
 // re-executed from disk, picking up the latest data.json content.
 function refreshData() {
-  location.reload();
+  if (location.protocol === 'file:') { location.reload(); return; }
+  // On HTTP(S): bypass CDN cache by loading data_loader.js with a fresh timestamp.
+  // A new URL is never in the CDN cache, so it always fetches the latest from origin.
+  const ts = Date.now();
+  window.__DASHBOARD_DATA__ = undefined;
+  const s = document.createElement('script');
+  s.src = 'data_loader.js?t=' + ts;
+  s.onload = function() {
+    if (window.__DASHBOARD_DATA__) _loadData(window.__DASHBOARD_DATA__);
+    else fetch('./data.json?t=' + ts).then(r => r.json()).then(_loadData)
+           .catch(e => alert('Refresh failed: ' + e.message));
+  };
+  s.onerror = function() {
+    fetch('./data.json?t=' + ts).then(r => r.json()).then(_loadData)
+      .catch(e => alert('Refresh failed: ' + e.message));
+  };
+  document.body.appendChild(s);
 }
 
 // ── Auto-load data ────────────────────────────────────────────
