@@ -756,40 +756,44 @@ function loadFile(input) {
   reader.readAsText(file);
 }
 
+// ══ Data URL helper ══════════════════════════════════════════
+// On GitHub Pages: returns raw.githubusercontent.com URL (bypasses Pages CDN).
+// raw.githubusercontent.com serves directly from the git commit — always current.
+// On other HTTP servers: returns ./data.json with cache-bust timestamp.
+function _dataFetchUrl() {
+  const ts = Date.now();
+  if (location.hostname.endsWith('.github.io')) {
+    const owner = location.hostname.replace('.github.io', '');
+    const repo  = location.pathname.split('/').filter(Boolean)[0] || '';
+    return 'https://raw.githubusercontent.com/' + owner + '/' + repo + '/main/data.json?t=' + ts;
+  }
+  return './data.json?t=' + ts;
+}
+
 // ══ Refresh ══════════════════════════════════════════════════
-// Reloads the page so data_loader.js (written by the VBA macro) is
-// re-executed from disk, picking up the latest data.json content.
 function refreshData() {
   if (location.protocol === 'file:') { location.reload(); return; }
-  // On HTTP(S): bypass CDN cache by loading data_loader.js with a fresh timestamp.
-  // A new URL is never in the CDN cache, so it always fetches the latest from origin.
-  const ts = Date.now();
-  window.__DASHBOARD_DATA__ = undefined;
-  const s = document.createElement('script');
-  s.src = 'data_loader.js?t=' + ts;
-  s.onload = function() {
-    if (window.__DASHBOARD_DATA__) _loadData(window.__DASHBOARD_DATA__);
-    else fetch('./data.json?t=' + ts).then(r => r.json()).then(_loadData)
-           .catch(e => alert('Refresh failed: ' + e.message));
-  };
-  s.onerror = function() {
-    fetch('./data.json?t=' + ts).then(r => r.json()).then(_loadData)
-      .catch(e => alert('Refresh failed: ' + e.message));
-  };
-  document.body.appendChild(s);
+  showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
+  fetch(_dataFetchUrl())
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(d => _loadData(d))
+    .catch(e => alert('Refresh failed: ' + e.message));
 }
 
 // ── Auto-load data ────────────────────────────────────────────
-// Priority 1: data_loader.js injected by VBA macro (works on file:// AND http://)
-if (window.__DASHBOARD_DATA__) {
-  _loadData(window.__DASHBOARD_DATA__);
-} else if (location.protocol !== 'file:') {
-  // Priority 2: served via HTTP — try fetching data.json directly
+// file://: use data_loader.js (script tag already executed above)
+// HTTP(S): always fetch fresh — GitHub Pages uses raw.githubusercontent.com
+//          to bypass CDN; other servers use ./data.json with cache-bust.
+if (location.protocol === 'file:') {
+  if (window.__DASHBOARD_DATA__) _loadData(window.__DASHBOARD_DATA__);
+  // else: welcome screen shown by default
+} else {
   showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
-  fetch('./data.json')
+  fetch(_dataFetchUrl())
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(data => _loadData(data))
+    .then(d => _loadData(d))
     .catch(err => {
+      if (window.__DASHBOARD_DATA__) { _loadData(window.__DASHBOARD_DATA__); return; }
       showMain(`<div class="welcome">
         <div class="ic">📊</div>
         <h2>Sales Dashboard</h2>
@@ -802,7 +806,6 @@ if (window.__DASHBOARD_DATA__) {
       </div>`);
     });
 }
-// Priority 3: file:// with no data_loader.js → welcome screen shown by default
 
 // ── Sticky sbar shadow ────────────────────────────────────────
 // The window (not main) is the scroll container, so listen on window.
