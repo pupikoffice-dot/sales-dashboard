@@ -854,8 +854,8 @@ function setDateMode(m) {
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
-  // Open Orders: company is implicit ('openorders'), so show View immediately
-  if (m === 'openorders') on('pView');
+  // Open Orders: company selection required (same flow as other modes)
+  if (m === 'openorders') S.co ? on('pView') : off('pView');
   else if (S.co)          on('pView');
   else                    off('pView');
   chkApply();
@@ -1062,7 +1062,7 @@ function doApply() {
     showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
     setTimeout(() => {
       try {
-        const openRows = S.raw.filter(r => r.company === 'openorders');
+        const openRows = S.raw.filter(r => r.company === effCo());
         if (!openRows.length) {
           showMain('<div class="err">No open orders data found. Run the Excel export first.</div>'); return;
         }
@@ -1158,7 +1158,7 @@ function renderClients(coRows) {
     clients[r.clientID].rows.push(r);
   });
 
-  let html = buildSbar({ company: coName(effCo()), view: 'Clients', period: getDateLabel(), count: Object.keys(clients).length, rows });
+  let html = buildSbar({ company: coName(S.co), view: 'Clients', period: getDateLabel(), count: Object.keys(clients).length, rows });
 
   Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
     const { cash, qty } = sumRows(cl.rows);
@@ -1362,7 +1362,7 @@ function renderItems(coRows) {
   });
   if (!rows.length) { showMain('<div class="err">No data for selected items in the chosen period.</div>'); return; }
 
-  let html = buildSbar({ company: coName(effCo()), view: 'Items', period: getDateLabel(), count: selSKUs.size, rows });
+  let html = buildSbar({ company: coName(S.co), view: 'Items', period: getDateLabel(), count: selSKUs.size, rows });
 
   if (S.itemMode === 'items') {
     html += renderItemsSummaryTable(rows);
@@ -2240,10 +2240,10 @@ function pieOverlayClick(e) {
 }
 
 function chkApply(){
-  // Open Orders: no date or company needed, but view+mode must be selected
+  // Open Orders: company + view+mode required (no date needed)
   if (S.dateMode === 'openorders') {
-    const ready = (S.view==='clients' && S.clientMode) ||
-                  (S.view==='items' && S.catType && S.itemMode);
+    const ready = S.co && ((S.view==='clients' && S.clientMode) ||
+                  (S.view==='items' && S.catType && S.itemMode));
     document.getElementById('applyBtn').disabled = !ready;
     return;
   }
