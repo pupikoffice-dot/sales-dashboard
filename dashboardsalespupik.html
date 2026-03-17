@@ -751,9 +751,15 @@ function _loadData(data) {
   on('pDate');
 }
 
+function wmsCoKey(co) {
+  if (co === 'openorders') return 'pupik';
+  if (co === 'openorders-mt') return 'mt';
+  return co;
+}
+
 function getWmsQty(sku, rows) {
   if (!S.wmsStock) return null;
-  const cos = [...new Set(rows.map(r => r.company))];
+  const cos = [...new Set(rows.map(r => wmsCoKey(r.company)))];
   let total = 0, found = false;
   cos.forEach(co => {
     if (S.wmsStock[co] && S.wmsStock[co][sku] != null) { total += S.wmsStock[co][sku]; found = true; }
@@ -1148,7 +1154,8 @@ function attachCollapse() {
 // Build a collapsible section wrapper
 // sumCash, sumQty = totals shown in collapsed mini-bar
 // exportName/exportId = added as data attrs so CSV export can prepend them
-function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='') {
+function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='', stockQty=null) {
+  const stockSpan = stockQty != null ? `<span>Stock: <b style="color:var(--acc2)">${fmt0(stockQty)}</b></span>` : '';
   return `<div class="section" id="sec-${id}" data-export-name="${esc(exportName)}" data-export-id="${esc(exportId)}">
     <div class="section-title" data-collapse="1">
       ${icon} ${label}
@@ -1157,6 +1164,7 @@ function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', 
     <div class="section-sum">
       <span>Cash: <b>${fmt(sumCash)}</b></span>
       <span>Qty: <b>${fmt(sumQty)}</b></span>
+      ${stockSpan}
     </div>
     <div class="section-body">${bodyHtml}</div>
   </div>`;
@@ -1258,7 +1266,7 @@ function renderOpenOrders(rows) {
           <tbody>`;
 
       doc.rows.forEach(r => {
-        const sq = S.wmsStock?.[r.company]?.[r.itemSKU] ?? null;
+        const sq = S.wmsStock?.[wmsCoKey(r.company)]?.[r.itemSKU] ?? null;
         body += `<tr>
           <td>${esc(r.itemSKU||'')}</td>
           <td title="${esc(r.itemName||'')}">${esc(r.itemName||'')}</td>
@@ -1399,8 +1407,9 @@ function renderItems(coRows) {
     });
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it],i)=>{
       const {cash,qty}=sumRows(it.rows);
+      const sq=getWmsQty(sku,it.rows);
       const label=`${it.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${sku}</span>`;
-      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows), it.name, sku);
+      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows), it.name, sku, sq);
     });
     showMain(html);
     attachCollapse();
