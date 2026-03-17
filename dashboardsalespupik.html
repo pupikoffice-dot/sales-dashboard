@@ -1253,22 +1253,25 @@ function renderOpenOrders(rows) {
             <th style="text-align:left">Item Name</th>
             <th>Qty</th>
             <th>Cash</th>
+            <th>Stock</th>
           </tr></thead>
           <tbody>`;
 
       doc.rows.forEach(r => {
+        const sq = S.wmsStock?.[r.company]?.[r.itemSKU] ?? null;
         body += `<tr>
           <td>${esc(r.itemSKU||'')}</td>
           <td title="${esc(r.itemName||'')}">${esc(r.itemName||'')}</td>
           <td data-sv="${r.qty}">${fmt(r.qty)}</td>
           <td data-sv="${r.cash}">${fmt(r.cash)}</td>
+          <td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td>
         </tr>`;
       });
 
       body += `</tbody>
           <tfoot><tr>
             <td>—</td><td>Total</td>
-            <td>${fmt(dq)}</td><td>${fmt(dc)}</td>
+            <td>${fmt(dq)}</td><td>${fmt(dc)}</td><td>—</td>
           </tr></tfoot>
         </table></div>
       </div>`;
