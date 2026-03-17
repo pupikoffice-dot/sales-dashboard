@@ -330,8 +330,7 @@ tfoot td:first-child, tfoot td:nth-child(2) { text-align: left; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--txt); }
 .si { font-size: .65em; opacity: .5; margin-left: 3px; }
-/* Dual-year monthly column: sticky header + prior-year sub-row */
-.tw-months thead th { position: sticky; top: 120px; z-index: 4; background: var(--sur2); }
+/* Dual-year monthly column prior-year sub-row */
 .mo-prev { font-size: .75rem; margin-top: 4px; padding-top: 3px; border-top: 1px dashed rgba(120,120,120,.25); }
 input[type="date"] {
   width: 100%;
@@ -1642,13 +1641,69 @@ function getDualMonthCols() {
     .sort((a,b) => +a[0] - +b[0])
     .map(([m,y]) => ({m:+m, cur:+y, prev:+y-1}));
 }
-// After rendering monthly tables, set sticky top offset below the sbar
+// Sticky headers for monthly tables via fixed-position JS clones
+// (CSS sticky doesn't work inside overflow-x:auto containers)
 function makeStickyHeaders() {
-  requestAnimationFrame(() => {
-    const sbar = document.querySelector('#main .sbar');
-    const topPx = sbar ? (53 + sbar.offsetHeight) + 'px' : '120px';
-    document.querySelectorAll('#main .tw-months thead th').forEach(th => { th.style.top = topPx; });
-  });
+  if (window._stickyHandler) { window.removeEventListener('scroll', window._stickyHandler); delete window._stickyHandler; }
+  if (window._stickyCleanup) { window._stickyCleanup.forEach(fn => fn()); delete window._stickyCleanup; }
+  document.querySelectorAll('.sticky-thead-clone').forEach(e => e.remove());
+
+  const tables = [...document.querySelectorAll('#main .tw-months table')];
+  if (!tables.length) return;
+  const sbar = document.querySelector('#main .sbar');
+
+  const entries = tables.map(table => {
+    const thead = table.querySelector('thead');
+    if (!thead) return null;
+    const ths = [...thead.querySelectorAll('th')];
+    const wrap = document.createElement('div');
+    wrap.className = 'sticky-thead-clone';
+    wrap.style.cssText = 'position:fixed;z-index:200;display:none;overflow:hidden;background:var(--sur2);border-bottom:2px solid var(--bdr);box-shadow:0 2px 8px rgba(0,0,0,.25);';
+    const ct = document.createElement('table');
+    ct.style.cssText = 'border-collapse:collapse;border-spacing:0;table-layout:fixed;background:var(--sur2);font-size:.72rem;';
+    const cloneThead = thead.cloneNode(true);
+    [...cloneThead.querySelectorAll('th')].forEach((cth, j) => {
+      if (ths[j] && ths[j].classList.contains('sortable')) { cth.style.cursor='pointer'; cth.onclick=()=>ths[j].click(); }
+    });
+    ct.appendChild(cloneThead);
+    wrap.appendChild(ct);
+    document.body.appendChild(wrap);
+    const twDiv = table.closest('.tw-months');
+    let cleanup = null;
+    if (twDiv) {
+      const syncH = () => { ct.style.marginLeft = -twDiv.scrollLeft + 'px'; };
+      twDiv.addEventListener('scroll', syncH, {passive:true});
+      cleanup = () => twDiv.removeEventListener('scroll', syncH);
+    }
+    return {table, thead, ths, wrap, ct, twDiv, cleanup};
+  }).filter(Boolean);
+
+  if (!entries.length) return;
+
+  const update = () => {
+    const sbarBottom = sbar ? sbar.getBoundingClientRect().bottom : 53;
+    entries.forEach(({table, thead, ths, wrap, ct, twDiv}) => {
+      const twRect = (twDiv || table).getBoundingClientRect();
+      const tbodyBottom = (table.querySelector('tbody') || table).getBoundingClientRect().bottom;
+      const show = twRect.top < sbarBottom && tbodyBottom > sbarBottom + 10;
+      if (show) {
+        const cThs = [...ct.querySelectorAll('th')];
+        ths.forEach((th,j) => { if(cThs[j]) cThs[j].style.width = th.offsetWidth + 'px'; });
+        ct.style.width = ths.reduce((s,th)=>s+th.offsetWidth,0) + 'px';
+        if (twDiv) ct.style.marginLeft = -twDiv.scrollLeft + 'px';
+        wrap.style.top = sbarBottom + 'px';
+        wrap.style.left = twRect.left + 'px';
+        wrap.style.width = twRect.width + 'px';
+        wrap.style.display = 'block';
+      } else {
+        wrap.style.display = 'none';
+      }
+    });
+  };
+  window._stickyHandler = update;
+  window._stickyCleanup = entries.map(e=>e.cleanup).filter(Boolean);
+  window.addEventListener('scroll', update, {passive:true});
+  requestAnimationFrame(update);
 }
 function getDateLabel() {
   if (S.dateMode==='openorders') return 'Open Orders';
