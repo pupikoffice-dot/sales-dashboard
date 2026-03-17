@@ -1769,10 +1769,22 @@ function injectDlButtons() {
     srch.className = 'sbar-search';
     srch.oninput = () => {
       const q = srch.value.toLowerCase().trim();
+      if (!q) {
+        document.querySelectorAll('#main .section').forEach(sec => sec.style.display = '');
+        document.querySelectorAll('#main tbody tr').forEach(tr => tr.style.display = '');
+        return;
+      }
+      // Filter table rows by text content (SKU, name, etc.)
+      document.querySelectorAll('#main tbody tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+      // Show/hide sections: match by name/id OR if any of their rows are visible
       document.querySelectorAll('#main .section').forEach(sec => {
-        const name = (sec.dataset.exportName || '').toLowerCase();
-        const id   = (sec.dataset.exportId   || '').toLowerCase();
-        sec.style.display = (!q || name.includes(q) || id.includes(q)) ? '' : 'none';
+        const nameMatch = (sec.dataset.exportName || '').toLowerCase().includes(q) ||
+                          (sec.dataset.exportId   || '').toLowerCase().includes(q);
+        const rowMatch  = [...sec.querySelectorAll('tbody tr')].some(tr => tr.style.display !== 'none');
+        sec.style.display = (nameMatch || rowMatch) ? '' : 'none';
+        if (nameMatch) sec.querySelectorAll('tbody tr').forEach(tr => tr.style.display = '');
       });
     };
     actions.insertBefore(srch, actions.firstChild);
