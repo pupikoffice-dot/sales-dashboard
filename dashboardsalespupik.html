@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sales Dashboard - Group</title>
+<title>Sales Dashboard — Pupik &amp; Grow</title>
 <style>
 /* ── Reset & Variables ── */
 :root {
@@ -42,8 +42,6 @@ header h1 { font-size: 1.2rem; font-weight: 700; }
 .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .data-badge { background: var(--sur2); border: 1px solid var(--bdr); border-radius: 20px; padding: 3px 14px; font-size: .72rem; color: var(--muted); }
 .data-badge b { color: var(--acc); }
-.refresh-btn { background: var(--sur2); border: 1px solid var(--bdr); color: var(--txt); border-radius: 20px; padding: 3px 14px; font-size: .72rem; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background .15s; }
-.refresh-btn:hover { background: var(--acc); color: #fff; border-color: var(--acc); }
 
 /* ── Layout ── */
 .shell { display: flex; min-height: calc(100vh - 53px); }
@@ -214,7 +212,7 @@ label.ck input { accent-color: var(--acc); width: 13px; height: 13px; flex-shrin
 .apply-btn:disabled { opacity: .3; cursor: not-allowed; }
 
 /* ── Main content ── */
-main { flex: 1; padding: 22px 24px; }
+main { flex: 1; padding: 22px 24px; overflow-y: auto; }
 .welcome {
   display: flex;
   flex-direction: column;
@@ -243,21 +241,16 @@ main { flex: 1; padding: 22px 24px; }
   background: var(--sur);
   border: 1px solid var(--bdr);
   border-radius: var(--r);
-  padding: 24px 16px;
+  padding: 8px 16px;
   margin-bottom: 16px;
   display: flex;
   gap: 16px;
-  font-size: .82rem;
+  font-size: .77rem;
   color: var(--muted);
   align-items: center;
   flex-wrap: wrap;
-  position: sticky;
-  top: 53px;
-  z-index: 50;
-  transition: box-shadow .2s;
 }
 .sbar b { color: var(--txt); }
-.sbar--stuck { box-shadow: 0 4px 12px rgba(0,0,0,.18); border-radius: 0 0 var(--r) var(--r); }
 .sbar-legend { margin-left: auto; display: flex; gap: 10px; font-size: .72rem; }
 .leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
 
@@ -268,33 +261,13 @@ main { flex: 1; padding: 22px 24px; }
   font-weight: 700;
   margin-bottom: 10px;
   padding: 8px 12px;
-  background: rgba(34,197,94,.12);
-  border: 1px solid rgba(34,197,94,.32);
+  background: var(--sur2);
+  border: 1px solid var(--bdr);
   border-radius: 7px;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--txt);
 }
-/* ── Open Orders document blocks ── */
-.oo-doc { margin-bottom: 12px; }
-.oo-doc:last-child { margin-bottom: 0; }
-.oo-doc-hdr {
-  padding: 5px 12px;
-  background: rgba(79,126,248,.10);
-  border: 1px solid rgba(79,126,248,.25);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  font-size: .8rem;
-  font-weight: 600;
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.oo-doc-hdr .oo-lbl { color: var(--muted); font-weight: 400; }
-.oo-doc .tw { border-radius: 0 0 6px 6px; }
-
 .tw { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bdr); }
 table { width: 100%; border-collapse: collapse; font-size: .8rem; }
 thead th {
@@ -352,34 +325,9 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
   cursor: pointer;
 }
 .dl-btn:hover { color: var(--acc); border-color: var(--acc); }
-/* ── Status bar right-side action buttons ── */
-.sbar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sbar-search {
-  background: var(--bg);
-  border: 1px solid var(--bdr);
-  color: var(--txt);
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: .74rem;
-  width: 140px;
-  outline: none;
-}
-.sbar-search:focus { border-color: var(--acc); }
-.sbar-search::placeholder { color: var(--muted); }
-.sbar-minimize-btn {
-  background: var(--sur2);
-  border: 1px solid var(--bdr);
-  color: var(--muted);
-  border-radius: 6px;
-  padding: 3px 12px;
-  font-size: .74rem;
-  cursor: pointer;
-  transition: all .13s;
-  white-space: nowrap;
-}
-.sbar-minimize-btn:hover { color: var(--acc); border-color: var(--acc); }
 /* ── Chart button in status bar ── */
 .sbar-chart-btn {
+  margin-left: auto;
   background: var(--sur2);
   border: 1px solid var(--bdr);
   color: var(--acc);
@@ -545,7 +493,6 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
     <div class="sub">Pupik · Grow</div>
   </div>
   <div class="hdr-right">
-    <button class="refresh-btn" onclick="refreshData()" title="Reload data_loader.js / data.json from disk">🔄 Refresh</button>
     <div class="data-badge" id="dataBadge">No data loaded</div>
   </div>
 </header>
@@ -569,19 +516,18 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
   <div class="panel disabled" id="pDate">
     <div class="panel-title">② Date Filter</div>
     <div class="tab-row">
-      <button class="tab-btn active" id="tRange"      onclick="setDateMode('range')">From / To</button>
-      <button class="tab-btn"        id="tMonths"     onclick="setDateMode('months')">Months</button>
-      <button class="tab-btn"        id="tOpenOrders" onclick="setDateMode('openorders')">📋 Open Orders</button>
+      <button class="tab-btn active" id="tRange" onclick="setDateMode('range')">From / To</button>
+      <button class="tab-btn"        id="tMonths" onclick="setDateMode('months')">Months</button>
     </div>
 
     <!-- Range mode -->
     <div class="date-range" id="rangeInputs">
       <label>From</label>
       <input type="date" id="dateFrom" min="2025-01-01" max="2026-12-31"
-             lang="en-GB" onchange="onDateChg()"/>
+             onchange="onDateChg()"/>
       <label>To</label>
       <input type="date" id="dateTo" min="2025-01-01" max="2026-12-31"
-             lang="en-GB" onchange="onDateChg()"/>
+             onchange="onDateChg()"/>
     </div>
 
     <!-- Months mode -->
@@ -694,7 +640,6 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
     <div class="pie-modal-hdr">
       <span>📊 <span id="pieModalTitle"></span></span>
       <span class="pie-modal-sub" id="pieModalSub"></span>
-      <button class="dl-btn" onclick="dlPieModalCSV()" style="margin-left:auto;margin-right:6px">📥 Export CSV</button>
       <button class="pie-close" onclick="closePieModal()">✕</button>
     </div>
     <div class="pie-modal-body">
@@ -714,7 +659,6 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="data_loader.js"></script>
 <script>
 'use strict';
 
@@ -737,12 +681,28 @@ const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','D
 // ══ Load JSON ════════════════════════════════════════════════
 function _loadData(data) {
   S.raw = data.rows || data;
+  S.wmsStock = {};
+  (data.wmsRows || []).forEach(r => {
+    if (!r.itemSKU) return;
+    if (!S.wmsStock[r.company]) S.wmsStock[r.company] = {};
+    S.wmsStock[r.company][r.itemSKU] = (S.wmsStock[r.company][r.itemSKU] || 0) + r.qtyInStock;
+  });
   document.getElementById('dataBadge').innerHTML = `Loaded: <b>${S.raw.length.toLocaleString()}</b> rows`;
   showMain(`<div class="welcome"><div class="ic">✅</div>
     <h2>Data loaded — ${S.raw.length.toLocaleString()} rows</h2>
     <p>Generated: ${data.generated||'unknown'}<br/>Select a company on the left to begin.</p></div>`);
   buildMonthGrid();
   on('pDate');
+}
+
+function getWmsQty(sku, rows) {
+  if (!S.wmsStock) return null;
+  const cos = [...new Set(rows.map(r => r.company))];
+  let total = 0, found = false;
+  cos.forEach(co => {
+    if (S.wmsStock[co] && S.wmsStock[co][sku] != null) { total += S.wmsStock[co][sku]; found = true; }
+  });
+  return found ? total : null;
 }
 
 function loadFile(input) {
@@ -756,44 +716,13 @@ function loadFile(input) {
   reader.readAsText(file);
 }
 
-// ══ Data URL helper ══════════════════════════════════════════
-// On GitHub Pages: returns raw.githubusercontent.com URL (bypasses Pages CDN).
-// raw.githubusercontent.com serves directly from the git commit — always current.
-// On other HTTP servers: returns ./data.json with cache-bust timestamp.
-function _dataFetchUrl() {
-  const ts = Date.now();
-  if (location.hostname.endsWith('.github.io')) {
-    const owner = location.hostname.replace('.github.io', '');
-    const repo  = location.pathname.split('/').filter(Boolean)[0] || '';
-    return 'https://raw.githubusercontent.com/' + owner + '/' + repo + '/main/data.json?t=' + ts;
-  }
-  return './data.json?t=' + ts;
-}
-
-// ══ Refresh ══════════════════════════════════════════════════
-function refreshData() {
-  if (location.protocol === 'file:') { location.reload(); return; }
+// ── Auto-fetch data.json when served via HTTP/HTTPS ──────────
+if (location.protocol !== 'file:') {
   showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
-  fetch(_dataFetchUrl())
+  fetch('./data.json')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(d => _loadData(d))
-    .catch(e => alert('Refresh failed: ' + e.message));
-}
-
-// ── Auto-load data ────────────────────────────────────────────
-// file://: use data_loader.js (script tag already executed above)
-// HTTP(S): always fetch fresh — GitHub Pages uses raw.githubusercontent.com
-//          to bypass CDN; other servers use ./data.json with cache-bust.
-if (location.protocol === 'file:') {
-  if (window.__DASHBOARD_DATA__) _loadData(window.__DASHBOARD_DATA__);
-  // else: welcome screen shown by default
-} else {
-  showMain('<div class="spin-wrap"><div class="spin"></div> Loading data…</div>');
-  fetch(_dataFetchUrl())
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(d => _loadData(d))
+    .then(data => _loadData(data))
     .catch(err => {
-      if (window.__DASHBOARD_DATA__) { _loadData(window.__DASHBOARD_DATA__); return; }
       showMain(`<div class="welcome">
         <div class="ic">📊</div>
         <h2>Sales Dashboard</h2>
@@ -806,15 +735,6 @@ if (location.protocol === 'file:') {
       </div>`);
     });
 }
-
-// ── Sticky sbar shadow ────────────────────────────────────────
-// The window (not main) is the scroll container, so listen on window.
-window.addEventListener('scroll', function() {
-  const sbar = document.querySelector('#main .sbar');
-  if (!sbar) return;
-  // Stuck once the sbar's natural top (header height) has been passed
-  sbar.classList.toggle('sbar--stuck', window.scrollY > 4);
-}, { passive: true });
 
 function onDateChg() {
   // type="date" inputs return YYYY-MM-DD directly — no parsing needed
@@ -837,27 +757,23 @@ function selCo(co) {
 // ══ Date mode ════════════════════════════════════════════════
 function setDateMode(m) {
   S.dateMode = m;
-  act2('tRange', m==='range'); act2('tMonths', m==='months'); act2('tOpenOrders', m==='openorders');
+  act2('tRange', m==='range'); act2('tMonths', m==='months');
   document.getElementById('rangeInputs').style.display = m==='range' ? '' : 'none';
   document.getElementById('monthsPicker').classList.toggle('active', m==='months');
-  // Clear selections for the modes being left
+  // Clear the other mode's selections
   if (m === 'range') {
     clearMonths();
   } else {
     S.dateFrom = null; S.dateTo = null;
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
-    if (m === 'openorders') clearMonths(); // open orders needs no date at all
   }
   // Reset all downstream filters (view and below)
   S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
-  // Open Orders: company selection required (same flow as other modes)
-  if (m === 'openorders') S.co ? on('pView') : off('pView');
-  else if (S.co)          on('pView');
-  else                    off('pView');
+  if (S.co) on('pView'); else off('pView');
   chkApply();
 }
 
@@ -939,7 +855,7 @@ function selView(v) {
 // ══ Client list — FIX: use ALL company rows (not date-filtered)
 //    so list is always populated regardless of date selection   ══
 function buildClientList() {
-  const rows = S.raw.filter(r => r.company === effCo());
+  const rows = S.raw.filter(r => r.company === S.co);
   const clients = {};
   rows.forEach(r => {
     if (!r.clientID) return;
@@ -975,11 +891,11 @@ function selCatType(t) {
 
 function buildCatList() {
   if (!S.catType) return;
-  const rows = S.raw.filter(r => r.company === effCo());
+  const rows = S.raw.filter(r => r.company === S.co);
   const cats = new Set();
   rows.forEach(r => {
-    const v = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
-    cats.add(v);
+    const v = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
+    if (v) cats.add(v);
   });
   const list = document.getElementById('catList');
   list.innerHTML = '';
@@ -1001,14 +917,14 @@ function buildCatList() {
 function buildItemList() {
   const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c => c.value));
   const rows = S.raw.filter(r => {
-    if (r.company !== effCo()) return false;
-    const cat = (S.catType === 'tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
+    if (r.company !== S.co) return false;
+    const cat = S.catType === 'tablet' ? r.tabletCat : r.groupCat;
     return selCats.has(cat);
   });
   const items = {};
   rows.forEach(r => {
-    const sku = r.itemSKU || '(No SKU)';
-    if (!items[sku]) items[sku] = r.itemName || sku;
+    if (!r.itemSKU) return;
+    if (!items[r.itemSKU]) items[r.itemSKU] = r.itemName || r.itemSKU;
   });
   const list = document.getElementById('itemList');
   list.innerHTML = '';
@@ -1057,25 +973,6 @@ function filterByDate(rows) {
 
 // ══ Apply ════════════════════════════════════════════════════
 function doApply() {
-  // ── Open Orders: company is implicit, no date filter needed ──
-  if (S.dateMode === 'openorders') {
-    showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
-    setTimeout(() => {
-      try {
-        const openRows = S.raw.filter(r => r.company === effCo());
-        if (!openRows.length) {
-          showMain('<div class="err">No open orders data found. Run the Excel export first.</div>'); return;
-        }
-        if (S.view === 'clients') renderClients(openRows);
-        else                      renderItems(openRows);
-      } catch(e) {
-        showMain(`<div class="err">Render error: ${e.message}</div>`);
-        console.error(e);
-      }
-    }, 30);
-    return;
-  }
-
   if (S.dateMode === 'range') {
     if (!S.dateFrom || !S.dateTo) { alert('Please enter valid From and To dates (dd/mm/yyyy).'); return; }
     if (S.dateFrom > S.dateTo)    { alert('From date must be before To date.'); return; }
@@ -1107,33 +1004,12 @@ function attachCollapse() {
       sec.classList.toggle('collapsed');
     });
   });
-  // Inject "Minimize All / Expand All" button into sbar-actions
-  const sections = document.querySelectorAll('#main .section');
-  if (!sections.length) return;
-  const actions = document.querySelector('#main .sbar-actions');
-  if (!actions || actions.querySelector('.sbar-minimize-btn')) return;
-  const btn = document.createElement('button');
-  btn.className = 'sbar-minimize-btn';
-  btn.textContent = '⊟ Minimize All';
-  btn.onclick = () => {
-    const all = [...document.querySelectorAll('#main .section')];
-    const allCollapsed = all.every(s => s.classList.contains('collapsed'));
-    if (allCollapsed) {
-      all.forEach(s => s.classList.remove('collapsed'));
-      btn.textContent = '⊟ Minimize All';
-    } else {
-      all.forEach(s => s.classList.add('collapsed'));
-      btn.textContent = '⊞ Expand All';
-    }
-  };
-  actions.appendChild(btn);
 }
 
 // Build a collapsible section wrapper
 // sumCash, sumQty = totals shown in collapsed mini-bar
-// exportName/exportId = added as data attrs so CSV export can prepend them
-function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='') {
-  return `<div class="section" id="sec-${id}" data-export-name="${esc(exportName)}" data-export-id="${esc(exportId)}">
+function makeSection(icon, label, id, sumCash, sumQty, bodyHtml) {
+  return `<div class="section" id="sec-${id}">
     <div class="section-title" data-collapse="1">
       ${icon} ${label}
       <span class="collapse-icon">▾</span>
@@ -1164,7 +1040,7 @@ function renderClients(coRows) {
     const { cash, qty } = sumRows(cl.rows);
     const label = `${cl.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${cid}</span>`;
     const body  = S.clientMode === 'cash' ? renderCashTable(cl.rows) : renderItemsUnderClient(cl.rows);
-    html += makeSection('👤', label, `c${i}`, cash, qty, body, cl.name, cid);
+    html += makeSection('👤', label, `c${i}`, cash, qty, body);
   });
 
   showMain(html);
@@ -1179,103 +1055,9 @@ function renderClients(coRows) {
   );
 }
 
-// ══ Render: Open Orders ══════════════════════════════════════
-// Two-level layout: Client → Documents → Items
-//   Client header  : name, ID, agent, total qty, total cash
-//   Document block : doc#, date, then a flat SKU/name/qty/cash table
-function renderOpenOrders(rows) {
-
-  // Helper: YYYY-MM-DD → DD/MM/YYYY
-  function fmtDMY(s) {
-    if (!s || s.length < 10) return s || '';
-    return s.slice(8,10) + '/' + s.slice(5,7) + '/' + s.slice(0,4);
-  }
-
-  // ── Group by client ──────────────────────────────────────────
-  const clients = {};
-  rows.forEach(r => {
-    const cid = r.clientID || '—';
-    if (!clients[cid]) clients[cid] = { name: r.clientName || cid, agent: r.agent || '', rows: [] };
-    clients[cid].rows.push(r);
-  });
-
-  const count = Object.keys(clients).length;
-  let html = buildSbar({ company: 'Open Orders', view: 'Documents', period: 'Open Orders', count, rows });
-
-  Object.entries(clients).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([cid, cl], i) => {
-    const { cash, qty } = sumRows(cl.rows);
-
-    // Section title: name + id + agent
-    const label = `${esc(cl.name)}
-      <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${esc(cid)}</span>
-      <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:10px">· Agent: ${esc(cl.agent||'—')}</span>`;
-
-    // ── Group this client's rows by document ─────────────────
-    const docs = {};
-    cl.rows.forEach(r => {
-      const key = r.docNum || '—';
-      if (!docs[key]) docs[key] = { date: r.dateVal, rows: [] };
-      docs[key].rows.push(r);
-    });
-
-    // ── Build one block per document ─────────────────────────
-    let body = '';
-    Object.entries(docs).forEach(([docNum, doc]) => {
-      const { cash: dc, qty: dq } = sumRows(doc.rows);
-
-      // Document header bar
-      body += `<div class="oo-doc">
-        <div class="oo-doc-hdr">
-          <span>📄 <b>${esc(docNum)}</b></span>
-          <span><span class="oo-lbl">Date: </span><b>${fmtDMY(doc.date)}</b></span>
-          <span><span class="oo-lbl">Qty: </span><b>${fmt(dq)}</b></span>
-          <span><span class="oo-lbl">Cash: </span><b>${fmt(dc)}</b></span>
-        </div>
-        <div class="tw"><table>
-          <thead><tr>
-            <th style="text-align:left">SKU</th>
-            <th style="text-align:left">Item Name</th>
-            <th>Qty</th>
-            <th>Cash</th>
-          </tr></thead>
-          <tbody>`;
-
-      doc.rows.forEach(r => {
-        body += `<tr>
-          <td>${esc(r.itemSKU||'')}</td>
-          <td title="${esc(r.itemName||'')}">${esc(r.itemName||'')}</td>
-          <td data-sv="${r.qty}">${fmt(r.qty)}</td>
-          <td data-sv="${r.cash}">${fmt(r.cash)}</td>
-        </tr>`;
-      });
-
-      body += `</tbody>
-          <tfoot><tr>
-            <td>—</td><td>Total</td>
-            <td>${fmt(dq)}</td><td>${fmt(dc)}</td>
-          </tr></tfoot>
-        </table></div>
-      </div>`;
-    });
-
-    html += makeSection('👤', label, `oo${i}`, cash, qty, body, cl.name, cid);
-  });
-
-  showMain(html);
-  attachCollapse();
-  injectDlButtons();
-  attachPieButton(
-    Object.entries(clients).map(([, cl]) => {
-      const { cash, qty } = sumRows(cl.rows);
-      return { label: cl.name, value: cash, qty };
-    }),
-    'Cash by Client – Open Orders'
-  );
-}
-
 // ══ Cash table ═══════════════════════════════════════════════
 function renderCashTable(rows) {
-  if (S.dateMode === 'range' || S.dateMode === 'openorders') {
+  if (S.dateMode === 'range') {
     const { cash, qty } = sumRows(rows);
     return `<div class="tw"><table>
       <thead><tr><th style="text-align:left">💰 Total Cash</th><th style="text-align:left">📦 Total Qty</th></tr></thead>
@@ -1283,7 +1065,7 @@ function renderCashTable(rows) {
       </table></div>`;
   }
   const months = getSortedMonths();
-  let h = `<div class="tw" data-bar-chart="1"><table><thead><tr><th style="text-align:left">Metric</th>`;
+  let h = `<div class="tw"><table><thead><tr><th style="text-align:left">Metric</th>`;
   months.forEach(mk => { const [y,m]=mk.split('-'); h+=`<th>${MN[+m-1]} ${y}</th>`; });
   h += `<th>Total</th></tr></thead><tbody>`;
 
@@ -1316,22 +1098,23 @@ function renderItemsUnderClient(rows) {
     items[r.itemSKU].rows.push(r);
   });
 
-  if (S.dateMode === 'range' || S.dateMode === 'openorders') {
+  if (S.dateMode === 'range') {
     let h = `<div class="tw"><table>
-      <thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+      <thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0, tc=0;
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it]) => {
       const {cash,qty}=sumRows(it.rows); tq+=qty; tc+=cash;
-      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+      const sq=getWmsQty(sku,it.rows);
+      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     });
-    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td><td>—</td></tr></tfoot></table></div>`;
     return h;
   }
 
   const months = getSortedMonths();
   let h = `<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
   months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
-  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0; const gmc={},gmq={};
   Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
     let rc=0,rq=0;
@@ -1340,15 +1123,16 @@ function renderItemsUnderClient(rows) {
       const[y,m]=mk.split('-');
       const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0), qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
-    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    const sq=getWmsQty(sku,it.rows);
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1357,8 +1141,8 @@ function renderItems(coRows) {
   const selCats = new Set([...document.querySelectorAll('#catList input:checked')].map(c=>c.value));
   const selSKUs = new Set([...document.querySelectorAll('#itemList input:checked')].map(c=>c.value));
   const rows = coRows.filter(r => {
-    const cat = (S.catType==='tablet' ? r.tabletCat : r.groupCat) || '(No Category)';
-    return selCats.has(cat) && selSKUs.has(r.itemSKU || '(No SKU)');
+    const cat = S.catType==='tablet' ? r.tabletCat : r.groupCat;
+    return selCats.has(cat) && selSKUs.has(r.itemSKU);
   });
   if (!rows.length) { showMain('<div class="err">No data for selected items in the chosen period.</div>'); return; }
 
@@ -1372,14 +1156,14 @@ function renderItems(coRows) {
   } else {
     const items = {};
     rows.forEach(r => {
-      const sku = r.itemSKU || '(No SKU)';
-      if (!items[sku]) items[sku]={name:r.itemName||sku,rows:[]};
-      items[sku].rows.push(r);
+      if (!r.itemSKU) return;
+      if (!items[r.itemSKU]) items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
+      items[r.itemSKU].rows.push(r);
     });
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it],i)=>{
       const {cash,qty}=sumRows(it.rows);
       const label=`${it.name} <span style="color:var(--muted);font-size:.75rem;font-weight:400;margin-left:4px">${sku}</span>`;
-      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows), it.name, sku);
+      html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows));
     });
     showMain(html);
     attachCollapse();
@@ -1392,24 +1176,25 @@ function renderItems(coRows) {
 function renderItemsSummaryTable(rows) {
   const items = {};
   rows.forEach(r=>{
-    const sku = r.itemSKU || '(No SKU)';
-    if(!items[sku])items[sku]={name:r.itemName||sku,rows:[]};
-    items[sku].rows.push(r);
+    if(!r.itemSKU)return;
+    if(!items[r.itemSKU])items[r.itemSKU]={name:r.itemName||r.itemSKU,rows:[]};
+    items[r.itemSKU].rows.push(r);
   });
   if (S.dateMode==='range') {
-    let h=`<div class="tw"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+    let h=`<div class="tw"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0,tc=0;
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
       const{cash,qty}=sumRows(it.rows);tq+=qty;tc+=cash;
-      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+      const sq=getWmsQty(sku,it.rows);
+      h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     });
-    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td><td>—</td></tr></tfoot></table></div>`;
     return h;
   }
   const months=getSortedMonths();
   let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
   months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
-  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0;const gmc={},gmq={};
   Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
     let rc=0,rq=0;
@@ -1418,15 +1203,16 @@ function renderItemsSummaryTable(rows) {
       const[y,m]=mk.split('-');
       const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
-    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    const sq=getWmsQty(sku,it.rows);
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1438,7 +1224,7 @@ function renderClientsUnderItem(rows) {
     if(!clients[r.clientID])clients[r.clientID]={name:r.clientName||r.clientID,rows:[]};
     clients[r.clientID].rows.push(r);
   });
-  if (S.dateMode==='range' || S.dateMode==='openorders') {
+  if (S.dateMode==='range') {
     let h=`<div class="tw"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0,tc=0;
     Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
@@ -1460,15 +1246,15 @@ function renderClientsUnderItem(rows) {
       const[y,m]=mk.split('-');
       const f=cl.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
       const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
+      h+=`<td data-sv="${cash}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  months.forEach(mk=>{h+=`<td>${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  h+=`<td>${fmt(gc)}</td><td class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
   return h;
 }
 
@@ -1495,7 +1281,6 @@ function getSortedMonths() {
   });
 }
 function getDateLabel() {
-  if (S.dateMode==='openorders') return 'Open Orders';
   if (S.dateMode==='range') {
     const f=document.getElementById('dateFrom').value;
     const t=document.getElementById('dateTo').value;
@@ -1503,8 +1288,7 @@ function getDateLabel() {
   }
   return getSortedMonths().map(k=>{const[y,m]=k.split('-');return MN[+m-1]+' '+y;}).join(', ');
 }
-function coName(co){ return co==='pupik'?'Pupik':co==='grow'?'Grow':'Open Orders'; }
-function effCo() { return S.dateMode === 'openorders' ? 'openorders' : S.co; }
+function coName(co){ return co==='pupik'?'Pupik':co==='mt'?'Monkeytime':'Grow'; }
 function buildSbar({company,view,period,count,rows}){
   let warn = '';
   // Detect skew: if months mode and one month has >60% of total cash
@@ -1525,15 +1309,11 @@ function buildSbar({company,view,period,count,rows}){
       }
     }
   }
-  const totals = sumRows(rows || []);
   return `${warn}<div class="sbar">
     <span>Company: <b>${company}</b></span>
     <span>View: <b>${view}</b></span>
     <span>Period: <b>${period}</b></span>
     <span>Records: <b>${count}</b></span>
-    <span>Cash: <b>${fmt(totals.cash)}</b></span>
-    <span>Qty: <b>${fmt(totals.qty)}</b></span>
-    <div class="sbar-actions"></div>
   </div>`;
 }
 // fmt for general use (returns — for null/empty)
@@ -1549,299 +1329,42 @@ function act2(id,v){ document.getElementById(id)?.classList.toggle('active',v); 
 function clrAct(ids){ ids.forEach(id=>document.getElementById(id)?.classList.remove('active')); }
 // ── CSV Export ────────────────────────────────────────────────
 function injectDlButtons() {
-  // Inject search box + Export All button into sbar-actions (once per render)
-  const actions = document.querySelector('#main .sbar-actions');
-  if (actions && !actions.querySelector('.sbar-search')) {
-    const srch = document.createElement('input');
-    srch.type = 'text';
-    srch.placeholder = '🔍 Search…';
-    srch.className = 'sbar-search';
-    srch.oninput = () => {
-      const q = srch.value.toLowerCase().trim();
-      document.querySelectorAll('#main .section').forEach(sec => {
-        const name = (sec.dataset.exportName || '').toLowerCase();
-        const id   = (sec.dataset.exportId   || '').toLowerCase();
-        sec.style.display = (!q || name.includes(q) || id.includes(q)) ? '' : 'none';
-      });
-    };
-    actions.insertBefore(srch, actions.firstChild);
-
-    const expBtn = document.createElement('button');
-    expBtn.className = 'dl-btn';
-    expBtn.textContent = '📥 Export All';
-    expBtn.onclick = exportAll;
-    actions.insertBefore(expBtn, srch.nextSibling);
-  }
-
-  // Per-table dl-bar buttons
   document.querySelectorAll('#main .tw').forEach(tw => {
     if (tw.previousElementSibling?.classList.contains('dl-bar')) return;
     const bar = document.createElement('div');
     bar.className = 'dl-bar';
+    // Only show Chart button if the table has a data-pie-cash column
     const hasPie = tw.querySelector('th[data-pie-cash]');
-    const hasBar = tw.dataset.barChart === '1';
     bar.innerHTML = '<button class="dl-btn" onclick="dlTable(this)">📥 Export CSV</button>' +
-      (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '') +
-      (hasBar  ? ' <button class="dl-btn" onclick="dlCashBar(this)">📊 Chart</button>'  : '');
+      (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '');
     tw.parentNode.insertBefore(bar, tw);
   });
 }
-
-// Escape a value for CSV
-function csvCell(text) {
-  const s = String(text ?? '').replace(/\s+/g, ' ').trim();
-  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r'))
-    return '"' + s.replace(/"/g, '""') + '"';
-  return s;
-}
-
-function _downloadCSV(csv, filename) {
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename || `export_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-}
-
 function dlTable(btn) {
   const tw = btn.closest('.dl-bar').nextElementSibling;
   const table = tw?.querySelector('table');
   if (!table) return;
-  const section = tw.closest('.section');
-  const id   = section?.dataset.exportId   || '';
-  const name = section?.dataset.exportName || '';
-  if (_isMonthlyTable(table)) {
-    const {cashRows, qtyRows} = _extractFlatSplitRows([{id, name, table}]);
-    _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}]);
-  } else {
-    _downloadCSV(_buildFlatCSV([{id, name, table}]));
-  }
+  dlCSV(table);
 }
-
-// Returns true if table has monthly combined cash/qty cells
-function _isMonthlyTable(table) {
-  return [...table.querySelectorAll('thead th')].some(th => {
-    const c = th.cloneNode(true);
-    c.querySelectorAll('.si').forEach(e => e.remove());
-    return c.textContent.includes('cash/qty');
-  });
-}
-
-// Build CSV string for a simple (non-monthly) table
-function _buildStdCSV(table, prependRows) {
+function dlCSV(table) {
   const rows = [...table.querySelectorAll('tr')];
-  const lines = prependRows.map(r => r.map(csvCell).join(','));
-  rows.forEach(row => {
-    lines.push([...row.querySelectorAll('th,td')].map(c => {
+  const csv = rows.map(row => {
+    return [...row.querySelectorAll('th,td')].map(c => {
       const clone = c.cloneNode(true);
       clone.querySelectorAll('.si').forEach(el => el.remove());
-      return csvCell(clone.textContent);
-    }).join(','));
-  });
-  return lines.join('\r\n');
-}
-
-// Build CSV string for a monthly combined table — two sections: CASH and QTY
-function _buildSplitCSV(table, prependRows) {
-  const ths = [...table.querySelectorAll('thead th')];
-  const n = ths.length;
-  const headerTexts = ths.map(th => {
-    const c = th.cloneNode(true);
-    c.querySelectorAll('.si').forEach(e => e.remove());
-    return c.textContent.trim().replace(/\s+/g, ' ');
-  });
-  const cleanHdrs = headerTexts.map(h => h.replace(/\s*\(cash\/qty\)/i, '').trim());
-  const cashHdrs = cleanHdrs.slice(0, n - 1);
-  const qtyHdrs  = [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
-  const allRows  = [...table.querySelectorAll('tbody tr, tfoot tr')];
-
-  function buildLines(mode) {
-    const lines = prependRows.map(r => r.map(csvCell).join(','));
-    lines.push((mode === 'cash' ? cashHdrs : qtyHdrs).map(csvCell).join(','));
-    allRows.forEach(row => {
-      const cells = [...row.querySelectorAll('td')];
-      const out = [];
-      cells.forEach((td, i) => {
-        if (mode === 'cash' && i === n - 1) return;
-        if (mode === 'qty'  && i === n - 2) return;
-        if (i <= 1) {
-          const c = td.cloneNode(true);
-          c.querySelectorAll('.si, .cm').forEach(e => e.remove());
-          out.push(csvCell(c.textContent));
-        } else if (i >= 2 && i <= n - 3) {
-          out.push(csvCell(mode === 'cash'
-            ? (td.dataset.cash ?? td.dataset.sv ?? '0')
-            : (td.dataset.qty ?? '0')));
-        } else {
-          out.push(csvCell(td.dataset.sv !== undefined ? td.dataset.sv
-            : td.textContent.replace(/,/g, '').trim()));
-        }
-      });
-      lines.push(out.join(','));
-    });
-    return lines.join('\r\n');
-  }
-  return '--- CASH ---\r\n' + buildLines('cash') + '\r\n\r\n--- QTY ---\r\n' + buildLines('qty');
-}
-
-function dlCSV(table, prependRows = []) {
-  _downloadCSV(_isMonthlyTable(table)
-    ? _buildSplitCSV(table, prependRows)
-    : _buildStdCSV(table, prependRows));
-}
-
-// ── Flat CSV builders (ID/SKU col A, Name col B, then data) ──
-
-// Single flat table — all sections merged, header written once.
-// sectionData = [{id, name, table}]
-function _buildFlatCSV(sectionData) {
-  const lines = [];
-  let hdrDone = false;
-  sectionData.forEach(({id, name, table}) => {
-    [...table.querySelectorAll('tr')].forEach(row => {
-      const isHdr = row.querySelectorAll('th').length > 0;
-      if (isHdr && hdrDone) return;
-      const cells = [...row.querySelectorAll('th,td')].map(c => {
-        const cl = c.cloneNode(true);
-        cl.querySelectorAll('.si').forEach(e => e.remove());
-        return csvCell(cl.textContent);
-      });
-      if (isHdr) {
-        lines.push([csvCell('ID / SKU'), csvCell('Name'), ...cells].join(','));
-        hdrDone = true;
-      } else {
-        lines.push([csvCell(id), csvCell(name), ...cells].join(','));
-      }
-    });
-  });
-  return lines.join('\r\n');
-}
-
-// Extract monthly split data as JS arrays (for XLS export).
-// Returns {cashRows: [[...], ...], qtyRows: [[...], ...]}
-// sectionData = [{id, name, table}]
-function _extractFlatSplitRows(sectionData) {
-  function buildRows(mode) {
-    const rows = [];
-    let hdrDone = false;
-    sectionData.forEach(({id, name, table}) => {
-      const ths = [...table.querySelectorAll('thead th')];
-      const n   = ths.length;
-      const cleanHdrs = ths.map(th => {
-        const c = th.cloneNode(true);
-        c.querySelectorAll('.si').forEach(e => e.remove());
-        return c.textContent.trim().replace(/\s+/g, ' ').replace(/\s*\(cash\/qty\)/i, '').trim();
-      });
-      if (!hdrDone) {
-        const hdrs = mode === 'cash'
-          ? cleanHdrs.slice(0, n - 1)
-          : [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
-        rows.push(['ID / SKU', 'Name', ...hdrs]);
-        hdrDone = true;
-      }
-      [...table.querySelectorAll('tbody tr, tfoot tr')].forEach(row => {
-        const cells = [...row.querySelectorAll('td')];
-        const out = [];
-        cells.forEach((td, i) => {
-          if (mode === 'cash' && i === n - 1) return;
-          if (mode === 'qty'  && i === n - 2) return;
-          if (i <= 1) {
-            const c = td.cloneNode(true);
-            c.querySelectorAll('.si, .cm').forEach(e => e.remove());
-            out.push(c.textContent.trim());
-          } else if (i >= 2 && i <= n - 3) {
-            out.push(Number(mode === 'cash'
-              ? (td.dataset.cash ?? td.dataset.sv ?? 0)
-              : (td.dataset.qty  ?? 0)));
-          } else {
-            const v = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g, '').trim();
-            out.push(v !== '' && !isNaN(v) ? Number(v) : v);
-          }
-        });
-        rows.push([id, name, ...out]);
-      });
-    });
-    return rows;
-  }
-  return { cashRows: buildRows('cash'), qtyRows: buildRows('qty') };
-}
-
-// Download a multi-sheet Excel file (SpreadsheetML .xls — no library needed).
-// sheetsData = [{name: 'Cash', rows: [[...], ...]}, ...]
-function _downloadXLS(sheetsData, filename) {
-  function xe(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  let xml =
-    `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n` +
-    `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n` +
-    `  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n` +
-    `<Styles>\n` +
-    `  <Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2d3561" ss:Pattern="Solid"/></Style>\n` +
-    `</Styles>\n`;
-  sheetsData.forEach(({name, rows}) => {
-    xml += `<Worksheet ss:Name="${xe(name)}">\n<Table>\n`;
-    rows.forEach((row, ri) => {
-      xml += '  <Row>';
-      row.forEach(cell => {
-        const v   = cell ?? '';
-        const num = typeof v === 'number';
-        const sty = ri === 0 ? ' ss:StyleID="h"' : '';
-        xml += num
-          ? `<Cell${sty}><Data ss:Type="Number">${v}</Data></Cell>`
-          : `<Cell${sty}><Data ss:Type="String">${xe(v)}</Data></Cell>`;
-      });
-      xml += '</Row>\n';
-    });
-    xml += `</Table>\n</Worksheet>\n`;
-  });
-  xml += '</Workbook>';
-  const blob = new Blob([xml], {type: 'application/vnd.ms-excel;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+      let text = clone.textContent.replace(/\s+/g, ' ').trim();
+      if (text.includes(',') || text.includes('"') || text.includes('\n'))
+        text = '"' + text.replace(/"/g, '""') + '"';
+      return text;
+    }).join(',');
+  }).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
   a.href = url;
-  a.download = filename || `export_${new Date().toISOString().slice(0,10)}.xls`;
+  a.download = `export_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
-}
-
-// Export ALL visible sections into one flat CSV file
-function exportAll() {
-  const sections = [...document.querySelectorAll('#main .section')]
-    .filter(s => s.style.display !== 'none');
-  if (!sections.length) return;
-
-  const sectionData = [];
-  let anyMonthly = false, anyStd = false;
-
-  sections.forEach(sec => {
-    const table = sec.querySelector('.tw table');
-    if (!table) return;
-    const id   = sec.dataset.exportId   || '';
-    const name = sec.dataset.exportName || '';
-    const isMonthly = _isMonthlyTable(table);
-    if (isMonthly) anyMonthly = true; else anyStd = true;
-    sectionData.push({id, name, table, isMonthly});
-  });
-
-  if (!sectionData.length) return;
-
-  const date    = new Date().toISOString().slice(0, 10);
-  const mthData = sectionData.filter(d =>  d.isMonthly);
-  const stdData = sectionData.filter(d => !d.isMonthly);
-
-  if (mthData.length) {
-    // Monthly → XLS with Cash tab and Qty tab
-    const {cashRows, qtyRows} = _extractFlatSplitRows(mthData);
-    _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}],
-                 `export_${date}.xls`);
-  }
-  if (stdData.length) {
-    // Range totals → flat CSV
-    _downloadCSV(_buildFlatCSV(stdData), `export_${date}.csv`);
-  }
 }
 
 // ── Column sort ───────────────────────────────────────────────
@@ -1887,13 +1410,7 @@ const PIE_COLORS = [
   '#4f7ef8','#7c3aed','#22c55e','#f59e0b','#ef4444',
   '#06b6d4','#ec4899','#84cc16','#f97316','#a855f7',
   '#14b8a6','#e11d48','#0ea5e9','#d97706','#10b981',
-  '#6366f1','#b45309','#be185d','#047857','#9333ea',
-  '#38bdf8','#fb7185','#4ade80','#facc15','#c084fc',
-  '#2dd4bf','#f472b6','#a3e635','#fb923c','#818cf8',
-  '#34d399','#fecdd3','#67e8f9','#fde68a','#d8b4fe',
-  '#6ee7b7','#fda4af','#a5f3fc','#fef08a','#e9d5ff',
-  '#86efac','#fecaca','#bae6fd','#fed7aa','#f5d0fe',
-  '#4dd4ac','#c4b5fd','#86d9f0','#fbbf24','#f87171',
+  '#6366f1','#b45309','#be185d','#047857','#9333ea'
 ];
 
 // Build [{label, value}] of cash by itemSKU from a rows array
@@ -1914,13 +1431,13 @@ let _pieModalChart = null;
 
 function attachPieButton(entries, chartTitle) {
   _lastPie = { entries, chartTitle };
-  const actions = document.querySelector('#main .sbar-actions');
-  if (!actions || actions.querySelector('.sbar-chart-btn')) return;
+  const sbar = document.querySelector('#main .sbar');
+  if (!sbar || sbar.querySelector('.sbar-chart-btn')) return;
   const btn = document.createElement('button');
   btn.className = 'sbar-chart-btn';
   btn.textContent = '📊 Chart';
   btn.onclick = openPieModal;
-  actions.appendChild(btn);
+  sbar.appendChild(btn);
 }
 
 // ── Chart button per table ────────────────────────────────────
@@ -1928,9 +1445,6 @@ function dlTablePie(btn) {
   const tw = btn.closest('.dl-bar').nextElementSibling;
   const table = tw?.querySelector('table');
   if (!table) return;
-
-  // Monthly combined tables → bar chart per month instead of pie
-  if (_isMonthlyTable(table)) { _dlMonthBarChart(table, tw); return; }
 
   // Find the cash and qty columns
   const headers = [...table.querySelectorAll('thead th')];
@@ -1987,131 +1501,6 @@ function getTableTitle(tw) {
   return 'Cash Distribution';
 }
 
-// ── Bar chart: monthly combined tables (items/clients in months mode) ────
-function _dlMonthBarChart(table, tw) {
-  const ths = [...table.querySelectorAll('thead th')];
-  const n = ths.length;
-  // Month columns: index 2 … n-3  (col0=id, col1=name, last2=total cash/qty)
-  const months = ths.slice(2, n - 2).map(th => {
-    const c = th.cloneNode(true);
-    c.querySelectorAll('.si').forEach(e => e.remove());
-    return c.textContent.replace(/\s*\(cash\/qty\)/i, '').trim();
-  });
-  // Read totals per month from the tfoot row (has data-cash / data-qty set)
-  const cashVals = [], qtyVals = [];
-  const footRow = table.querySelector('tfoot tr');
-  if (footRow) {
-    const cells = [...footRow.querySelectorAll('td')];
-    months.forEach((_, mi) => {
-      const td = cells[mi + 2];
-      cashVals.push(parseFloat(td?.dataset.cash ?? '0') || 0);
-      qtyVals.push(parseFloat(td?.dataset.qty  ?? '0') || 0);
-    });
-  } else {
-    months.forEach(() => { cashVals.push(0); qtyVals.push(0); });
-    table.querySelectorAll('tbody tr').forEach(row => {
-      const cells = [...row.querySelectorAll('td')];
-      months.forEach((_, mi) => {
-        const td = cells[mi + 2];
-        cashVals[mi] += parseFloat(td?.dataset.cash ?? '0') || 0;
-        qtyVals[mi]  += parseFloat(td?.dataset.qty  ?? '0') || 0;
-      });
-    });
-  }
-  _showBarModal(months, cashVals, qtyVals, getTableTitle(tw));
-}
-
-// ── Bar chart: cash summary table (renderCashTable months mode) ──────────
-function dlCashBar(btn) {
-  const tw = btn.closest('.dl-bar').nextElementSibling;
-  const table = tw?.querySelector('table');
-  if (!table) return;
-  const ths = [...table.querySelectorAll('thead th')];
-  // Skip first (Metric) and last (Total) columns
-  const months = ths.slice(1, -1).map(th => th.textContent.trim());
-  const bodyRows = [...table.querySelectorAll('tbody tr')];
-  const cashRow  = bodyRows.find(r => r.cells[0]?.textContent.includes('Cash'));
-  const qtyRow   = bodyRows.find(r => r.cells[0]?.textContent.includes('Qty'));
-  const cashVals = cashRow
-    ? [...cashRow.cells].slice(1, -1).map(td => parseFloat(td.textContent.replace(/,/g,'')) || 0)
-    : months.map(() => 0);
-  const qtyVals  = qtyRow
-    ? [...qtyRow.cells].slice(1, -1).map(td => parseFloat(td.textContent.replace(/,/g,'')) || 0)
-    : months.map(() => 0);
-  _showBarModal(months, cashVals, qtyVals, getTableTitle(tw));
-}
-
-// ── Bar chart modal renderer ──────────────────────────────────────────────
-function _showBarModal(months, cashVals, qtyVals, title) {
-  const total    = cashVals.reduce((s, v) => s + v, 0);
-  const totalQty = qtyVals.reduce((s, v) => s + v, 0);
-
-  document.getElementById('pieModalTitle').textContent = title;
-  document.getElementById('pieModalSub').textContent   = `${months.length} month${months.length === 1 ? '' : 's'}`;
-  document.getElementById('pieModalTotal').textContent = fmt(total);
-
-  const pieTable = document.querySelector('#pieModal .pie-tbl');
-  pieTable.querySelector('thead tr').innerHTML =
-    '<th>#</th><th>Month</th>' +
-    '<th style="text-align:right">Cash</th>' +
-    '<th style="text-align:right">Qty</th>' +
-    '<th style="text-align:right">Share</th>';
-  pieTable.querySelector('tfoot tr').innerHTML =
-    `<td colspan="2">Total</td>` +
-    `<td style="text-align:right">${fmt(total)}</td>` +
-    `<td style="text-align:right;color:var(--muted)">${fmt(totalQty)}</td>` +
-    `<td style="text-align:right;color:var(--acc)">100%</td>`;
-
-  const tbody = document.getElementById('pieModalTbody');
-  tbody.innerHTML = months.map((m, i) => {
-    const pct = total > 0 ? ((cashVals[i] / total) * 100).toFixed(1) : '0.0';
-    return `<tr>
-      <td style="text-align:center;color:var(--muted)">${i + 1}</td>
-      <td><span class="pie-dot-sm" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></span>${esc(m)}</td>
-      <td style="text-align:right">${fmt(cashVals[i])}</td>
-      <td style="text-align:right;color:var(--muted)">${fmt(qtyVals[i])}</td>
-      <td style="text-align:right;color:var(--acc);font-weight:700">${pct}%</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('pieModal').style.display = 'flex';
-  if (_pieModalChart) { _pieModalChart.destroy(); _pieModalChart = null; }
-
-  const ctx = document.getElementById('pieModalCanvas').getContext('2d');
-  _pieModalChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Cash',
-        data: cashVals,
-        backgroundColor: months.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
-        borderColor: '#1a1d27',
-        borderWidth: 1,
-        borderRadius: 5,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => `  ${fmt(ctx.raw)}` } }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#7b82a8', font: { size: 11 } },
-          grid:  { color: 'rgba(46,51,80,.4)' }
-        },
-        y: {
-          ticks: { color: '#7b82a8', font: { size: 11 }, callback: v => fmt(v) },
-          grid:  { color: 'rgba(46,51,80,.4)' }
-        }
-      }
-    }
-  });
-}
-
 // ── Open modal (top-of-page button) ──────────────────────────
 function openPieModal() {
   if (!_lastPie) return;
@@ -2120,16 +1509,28 @@ function openPieModal() {
 
 // ── Core modal renderer ───────────────────────────────────────
 function _showPieModal(entries, chartTitle) {
-  const TOP = 50;
+  const TOP = 20;
 
   let data = entries.filter(e => e.value > 0).sort((a, b) => b.value - a.value);
   if (!data.length) return;
 
-  const sliced  = data.slice(0, TOP);
-  let labels    = sliced.map(e => e.label);
-  let values    = sliced.map(e => e.value);
-  let colors    = PIE_COLORS.slice(0, sliced.length);
-  let tableRows = sliced.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] }));
+  let labels, values, colors, tableRows;
+  const hasOthers = data.length > TOP;
+  if (hasOthers) {
+    const top      = data.slice(0, TOP);
+    const rest     = data.slice(TOP).reduce((s, e) => s + e.value, 0);
+    const restQty  = data.slice(TOP).reduce((s, e) => s + (e.qty || 0), 0);
+    labels    = [...top.map(e => e.label), 'Others'];
+    values    = [...top.map(e => e.value), rest];
+    colors    = [...PIE_COLORS.slice(0, TOP), '#3d4266'];
+    tableRows = [...top.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] })),
+                 { label: `Others (${data.length - TOP} more)`, value: rest, qty: restQty, sku: '', color: '#3d4266' }];
+  } else {
+    labels    = data.map(e => e.label);
+    values    = data.map(e => e.value);
+    colors    = PIE_COLORS.slice(0, data.length);
+    tableRows = data.map((e, i) => ({ label: e.label, value: e.value, qty: e.qty||0, sku: e.sku||'', color: PIE_COLORS[i] }));
+  }
 
   const total    = values.reduce((s, v) => s + v, 0);
   const totalQty = tableRows.reduce((s, r) => s + (r.qty || 0), 0);
@@ -2138,7 +1539,7 @@ function _showPieModal(entries, chartTitle) {
   // Populate modal header
   document.getElementById('pieModalTitle').textContent = chartTitle;
   document.getElementById('pieModalSub').textContent =
-    data.length > TOP ? `Top ${TOP} of ${data.length}` : `${data.length} entr${data.length===1?'y':'ies'}`;
+    data.length > TOP ? `Top ${TOP} of ${data.length} shown` : `${data.length} entries`;
   document.getElementById('pieModalTotal').textContent = fmt(total);
 
   // Update thead and tfoot dynamically based on whether SKU column is present
@@ -2171,11 +1572,12 @@ function _showPieModal(entries, chartTitle) {
   const tbody = document.getElementById('pieModalTbody');
   tbody.innerHTML = tableRows.map((r, i) => {
     const pct = total > 0 ? ((r.value / total) * 100).toFixed(1) : '0.0';
+    const isOthers = hasOthers && i === tableRows.length - 1;
     const skuCell = hasSku
       ? `<td style="text-align:left;color:var(--muted);font-size:.72rem;white-space:nowrap">${esc(r.sku || '—')}</td>`
       : '';
     return `<tr>
-      <td>${i + 1}</td>
+      <td>${isOthers ? '—' : i + 1}</td>
       ${skuCell}<td><span class="pie-dot-sm" style="background:${r.color}"></span>${esc(r.label)}</td>
       <td style="text-align:right">${fmt(r.value)}</td>
       <td style="text-align:right;color:var(--muted)">${fmt(r.qty || 0)}</td>
@@ -2227,26 +1629,12 @@ function closePieModal() {
   document.getElementById('pieModal').style.display = 'none';
 }
 
-function dlPieModalCSV() {
-  const table = document.querySelector('#pieModal .pie-tbl');
-  if (!table) return;
-  const title = document.getElementById('pieModalTitle').textContent || 'chart';
-  dlCSV(table, [[title]]);
-}
-
 function pieOverlayClick(e) {
   // Close if clicked on the overlay backdrop (not the modal itself)
   if (e.target === document.getElementById('pieModal')) closePieModal();
 }
 
 function chkApply(){
-  // Open Orders: company + view+mode required (no date needed)
-  if (S.dateMode === 'openorders') {
-    const ready = S.co && ((S.view==='clients' && S.clientMode) ||
-                  (S.view==='items' && S.catType && S.itemMode));
-    document.getElementById('applyBtn').disabled = !ready;
-    return;
-  }
   const dateOk = S.dateMode==='range'
     ? (S.dateFrom && S.dateTo)
     : S.selMonths.size > 0;
@@ -2259,3 +1647,4 @@ function chkApply(){
 </script>
 </body>
 </html>
+
