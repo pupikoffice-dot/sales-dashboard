@@ -1154,11 +1154,12 @@ function attachCollapse() {
 // Build a collapsible section wrapper
 // sumCash, sumQty = totals shown in collapsed mini-bar
 // exportName/exportId = added as data attrs so CSV export can prepend them
-function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='', stockQty=null) {
-  const stockInTitle = stockQty != null
-    ? `<span style="color:var(--acc2);font-size:.78rem;font-weight:600;margin-left:8px">· Stock: ${fmt0(stockQty)}</span>`
+function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', exportId='', stockQty=undefined) {
+  const hasStock = stockQty !== undefined;
+  const stockInTitle = hasStock
+    ? `<span style="color:var(--acc2);font-size:.78rem;font-weight:600;margin-left:8px">· Stock: ${stockQty != null ? fmt0(stockQty) : '—'}</span>`
     : '';
-  const stockInSum = stockQty != null ? `<span>Stock: <b style="color:var(--acc2)">${fmt0(stockQty)}</b></span>` : '';
+  const stockInSum = hasStock ? `<span>Stock: <b style="color:var(--acc2)">${stockQty != null ? fmt0(stockQty) : '—'}</b></span>` : '';
   return `<div class="section" id="sec-${id}" data-export-name="${esc(exportName)}" data-export-id="${esc(exportId)}">
     <div class="section-title" data-collapse="1">
       ${icon} ${label}${stockInTitle}
