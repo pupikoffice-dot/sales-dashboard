@@ -330,6 +330,9 @@ tfoot td:first-child, tfoot td:nth-child(2) { text-align: left; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--txt); }
 .si { font-size: .65em; opacity: .5; margin-left: 3px; }
+/* Dual-year monthly column: sticky header + prior-year sub-row */
+.tw-months thead th { position: sticky; top: 120px; z-index: 4; background: var(--sur2); }
+.mo-prev { font-size: .75rem; margin-top: 4px; padding-top: 3px; border-top: 1px dashed rgba(120,120,120,.25); }
 input[type="date"] {
   width: 100%;
   background: var(--bg);
@@ -572,6 +575,7 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
       <button class="tab-btn active" id="tRange"      onclick="setDateMode('range')">From / To</button>
       <button class="tab-btn"        id="tMonths"     onclick="setDateMode('months')">Months</button>
       <button class="tab-btn"        id="tOpenOrders" onclick="setDateMode('openorders')">📋 Open Orders</button>
+      <button class="tab-btn"        id="tStock"      onclick="setDateMode('stock')">📦 Stock</button>
     </div>
 
     <!-- Range mode -->
@@ -849,7 +853,7 @@ function onDateChg() {
 function selCo(co) {
   S.co = co; S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
   act('bPupik', co==='pupik'); act('bGrow', co==='grow');
-  on('pView');
+  if (S.dateMode !== 'stock') on('pView');
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
@@ -859,7 +863,7 @@ function selCo(co) {
 // ══ Date mode ════════════════════════════════════════════════
 function setDateMode(m) {
   S.dateMode = m;
-  act2('tRange', m==='range'); act2('tMonths', m==='months'); act2('tOpenOrders', m==='openorders');
+  act2('tRange', m==='range'); act2('tMonths', m==='months'); act2('tOpenOrders', m==='openorders'); act2('tStock', m==='stock');
   document.getElementById('rangeInputs').style.display = m==='range' ? '' : 'none';
   document.getElementById('monthsPicker').classList.toggle('active', m==='months');
   // Clear selections for the modes being left
@@ -869,17 +873,18 @@ function setDateMode(m) {
     S.dateFrom = null; S.dateTo = null;
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
-    if (m === 'openorders') clearMonths(); // open orders needs no date at all
+    if (m === 'openorders' || m === 'stock') clearMonths();
   }
   // Reset all downstream filters (view and below)
   S.view = null; S.clientMode = null; S.catType = null; S.itemMode = null;
   off('pClientsPanel'); off('pClientMode');
   off('pItemsPanel'); off('pItemSelect'); off('pItemMode');
   clrAct(['bClients','bItems','bClientItems','bClientCash','bTablet','bCategory','bItemClients','bItemOnly']);
-  // Open Orders: company selection required (same flow as other modes)
-  if (m === 'openorders') S.co ? on('pView') : off('pView');
-  else if (S.co)          on('pView');
-  else                    off('pView');
+  // Open Orders / Stock: no view panel needed for stock
+  if (m === 'openorders')      { S.co ? on('pView') : off('pView'); }
+  else if (m === 'stock')      { off('pView'); }
+  else if (S.co)               { on('pView'); }
+  else                         { off('pView'); }
   chkApply();
 }
 
@@ -1079,6 +1084,7 @@ function filterByDate(rows) {
 
 // ══ Apply ════════════════════════════════════════════════════
 function doApply() {
+  if (S.dateMode === 'stock') { renderStockView(); return; }
   // ── Open Orders: company is implicit, no date filter needed ──
   if (S.dateMode === 'openorders') {
     showMain('<div class="spin-wrap"><div class="spin"></div> Rendering…</div>');
@@ -1174,6 +1180,69 @@ function makeSection(icon, label, id, sumCash, sumQty, bodyHtml, exportName='', 
   </div>`;
 }
 
+// ══ Render: Stock view ═══════════════════════════════════════
+function renderStockView() {
+  if (!S.co) return;
+  showMain('<div class="spin-wrap"><div class="spin"></div> Building stock report…</div>');
+  setTimeout(() => {
+    try {
+      // Find last month with sales data for this company
+      let lastY=0, lastM=0;
+      S.raw.forEach(r => {
+        if (r.company !== S.co) return;
+        const y=Number(r.year), m=Number(r.month);
+        if (!m||!y) return;
+        if (y>lastY||(y===lastY&&m>lastM)){lastY=y;lastM=m;}
+      });
+      const ooCo = S.co==='mt' ? 'openorders-mt' : 'openorders';
+      const wmsData = (S.wmsStock && S.wmsStock[S.co]) || {};
+      const skus = {};
+      // From sales data
+      S.raw.forEach(r => {
+        if (r.company!==S.co||!r.itemSKU) return;
+        if (!skus[r.itemSKU]) skus[r.itemSKU]={name:r.itemName||r.itemSKU,lastMoQty:0,ooQty:0};
+        if (Number(r.year)===lastY&&Number(r.month)===lastM) skus[r.itemSKU].lastMoQty+=(r.qty||0);
+      });
+      // From open orders
+      S.raw.forEach(r => {
+        if (r.company!==ooCo||!r.itemSKU) return;
+        if (!skus[r.itemSKU]) skus[r.itemSKU]={name:r.itemName||r.itemSKU,lastMoQty:0,ooQty:0};
+        skus[r.itemSKU].ooQty+=(r.qty||0);
+      });
+      // From WMS (add SKUs only in WMS)
+      Object.keys(wmsData).forEach(sku => {
+        if (!skus[sku]) skus[sku]={name:sku,lastMoQty:0,ooQty:0};
+      });
+      const lastMoLabel = lastM ? `${MN[lastM-1]} ${lastY}` : 'N/A';
+      let h = `<div class="sbar"><span>Company: <b>${coName(S.co)}</b></span><span>View: <b>Stock</b></span><span>Last Month: <b>${lastMoLabel}</b></span><div class="sbar-actions"></div></div>`;
+      h += `<div class="tw"><table><thead><tr>
+        <th class="sortable" style="text-align:left">SKU<span class="si"> ↕</span></th>
+        <th class="sortable" style="text-align:left">Item Name<span class="si"> ↕</span></th>
+        <th class="sortable">Last Mo. Qty<span class="si"> ↕</span></th>
+        <th class="sortable" style="color:var(--acc2)">WMS Stock<span class="si"> ↕</span></th>
+        <th class="sortable">Open Orders Qty<span class="si"> ↕</span></th>
+        <th class="sortable">Available<span class="si"> ↕</span></th>
+      </tr></thead><tbody>`;
+      Object.entries(skus).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
+        const wq=wmsData[sku]??null;
+        const avail=wq!=null?wq-it.ooQty:null;
+        const aStyle=avail!=null?(avail<0?'color:var(--red)':'color:var(--grn)'):'color:var(--muted)';
+        h+=`<tr>
+          <td>${esc(sku)}</td>
+          <td title="${esc(it.name)}">${it.name}</td>
+          <td data-sv="${it.lastMoQty}">${fmt0(it.lastMoQty)}</td>
+          <td data-sv="${wq??-1}" style="color:var(--acc2)">${wq!=null?fmt0(wq):'—'}</td>
+          <td data-sv="${it.ooQty}">${fmt0(it.ooQty)}</td>
+          <td data-sv="${avail??-99999}" style="${aStyle}">${avail!=null?fmt0(avail):'—'}</td>
+        </tr>`;
+      });
+      h += `</tbody></table></div>`;
+      showMain(h);
+      injectDlButtons();
+    } catch(e) { showMain(`<div class="err">Render error: ${e.message}</div>`); console.error(e); }
+  }, 30);
+}
+
 // ══ Render: Clients ══════════════════════════════════════════
 function renderClients(coRows) {
   const selClientIDs = new Set([...document.querySelectorAll('#clientList input:checked')].map(c => c.value));
@@ -1196,6 +1265,7 @@ function renderClients(coRows) {
   });
 
   showMain(html);
+  makeStickyHeaders();
   attachCollapse();
   injectDlButtons();
   attachPieButton(
@@ -1360,27 +1430,36 @@ function renderItemsUnderClient(rows) {
     return h;
   }
 
-  const months = getSortedMonths();
-  let h = `<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
-  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  const cols=getDualMonthCols();
+  const clientID=rows[0]?.clientID||null;
+  const coRaw=S.raw.filter(r=>r.company===S.co&&r.clientID===clientID);
+  let h = `<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
-  let gc=0,gq=0; const gmc={},gmq={};
+  let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
   Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
     let rc=0,rq=0;
     h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td>`;
-    months.forEach(mk=>{
-      const[y,m]=mk.split('-');
-      const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
-      const cash=f.reduce((a,r)=>a+(r.cash||0),0), qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
-      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    cols.forEach(dc=>{
+      const f1=it.rows.filter(r=>Number(r.year)===dc.cur&&Number(r.month)===dc.m);
+      const f2=coRaw.filter(r=>r.itemSKU===sku&&Number(r.year)===dc.prev&&Number(r.month)===dc.m);
+      const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
+      const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
+      const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
+      gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
     const sq=getWmsQty(sku,it.rows);
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  cols.forEach(dc=>{
+    const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
+    const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+  });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
 }
@@ -1400,6 +1479,7 @@ function renderItems(coRows) {
   if (S.itemMode === 'items') {
     html += renderItemsSummaryTable(rows);
     showMain(html);
+    makeStickyHeaders();
     injectDlButtons();
     attachPieButton(buildItemPie(rows), 'Cash by Item');
   } else {
@@ -1416,6 +1496,7 @@ function renderItems(coRows) {
       html += makeSection('📦', label, `i${i}`, cash, qty, renderClientsUnderItem(it.rows), it.name, sku, sq);
     });
     showMain(html);
+    makeStickyHeaders();
     attachCollapse();
     injectDlButtons();
     attachPieButton(buildItemPie(rows), 'Cash by Item');
@@ -1441,27 +1522,35 @@ function renderItemsSummaryTable(rows) {
     h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td><td>—</td></tr></tfoot></table></div>`;
     return h;
   }
-  const months=getSortedMonths();
-  let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
-  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  const cols=getDualMonthCols();
+  const coRaw=S.raw.filter(r=>r.company===S.co);
+  let h=`<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
-  let gc=0,gq=0;const gmc={},gmq={};
+  let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
   Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
     let rc=0,rq=0;
     h+=`<tr><td>${esc(sku)}</td><td title="${esc(it.name)}">${it.name}</td>`;
-    months.forEach(mk=>{
-      const[y,m]=mk.split('-');
-      const f=it.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
-      const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
-      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    cols.forEach(dc=>{
+      const f1=it.rows.filter(r=>Number(r.year)===dc.cur&&Number(r.month)===dc.m);
+      const f2=coRaw.filter(r=>r.itemSKU===sku&&Number(r.year)===dc.prev&&Number(r.month)===dc.m);
+      const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
+      const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
+      const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
+      gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
     const sq=getWmsQty(sku,it.rows);
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sq!=null?fmt0(sq):'—'}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  cols.forEach(dc=>{
+    const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
+    const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+  });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
 }
@@ -1487,26 +1576,34 @@ function renderClientsUnderItem(rows) {
     h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
     return h;
   }
-  const months=getSortedMonths();
-  let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
-  months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
+  const cols=getDualMonthCols();
+  const coRaw=S.raw.filter(r=>r.company===S.co&&r.itemSKU===sku);
+  let h=`<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
+  cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable" style="color:var(--acc2)">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
-  let gc=0,gq=0;const gmc={},gmq={};
+  let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
   Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
     let rc=0,rq=0;
     h+=`<tr><td>${esc(cid)}</td><td title="${esc(cl.name)}">${cl.name}</td>`;
-    months.forEach(mk=>{
-      const[y,m]=mk.split('-');
-      const f=cl.rows.filter(r=>Number(r.year)==+y&&Number(r.month)==+m);
-      const cash=f.reduce((a,r)=>a+(r.cash||0),0),qty=f.reduce((a,r)=>a+(r.qty||0),0);
-      h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
-      rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
+    cols.forEach(dc=>{
+      const f1=cl.rows.filter(r=>Number(r.year)===dc.cur&&Number(r.month)===dc.m);
+      const f2=coRaw.filter(r=>r.clientID===cid&&Number(r.year)===dc.prev&&Number(r.month)===dc.m);
+      const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
+      const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
+      const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
+      gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
     h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sqFmt}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
-  months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
+  cols.forEach(dc=>{
+    const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
+    const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
+    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+  });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
   return h;
 }
@@ -1531,6 +1628,26 @@ function getSortedMonths() {
     const[ay,am]=a.split('-').map(Number);
     const[by,bm]=b.split('-').map(Number);
     return (ay*100+am)-(by*100+bm);
+  });
+}
+// Returns unique month columns for dual-year display.
+// Each entry: {m: monthNum, cur: latestYear, prev: latestYear-1}
+function getDualMonthCols() {
+  const byMonth = {};
+  getSortedMonths().forEach(mk => {
+    const [y,m] = mk.split('-').map(Number);
+    if (!byMonth[m] || y > byMonth[m]) byMonth[m] = y;
+  });
+  return Object.entries(byMonth)
+    .sort((a,b) => +a[0] - +b[0])
+    .map(([m,y]) => ({m:+m, cur:+y, prev:+y-1}));
+}
+// After rendering monthly tables, set sticky top offset below the sbar
+function makeStickyHeaders() {
+  requestAnimationFrame(() => {
+    const sbar = document.querySelector('#main .sbar');
+    const topPx = sbar ? (53 + sbar.offsetHeight) + 'px' : '120px';
+    document.querySelectorAll('#main .tw-months thead th').forEach(th => { th.style.top = topPx; });
   });
 }
 function getDateLabel() {
@@ -2279,6 +2396,7 @@ function pieOverlayClick(e) {
 }
 
 function chkApply(){
+  if (S.dateMode === 'stock') { document.getElementById('applyBtn').disabled = !S.co; return; }
   // Open Orders: company + view+mode required (no date needed)
   if (S.dateMode === 'openorders') {
     const ready = S.co && ((S.view==='clients' && S.clientMode) ||
