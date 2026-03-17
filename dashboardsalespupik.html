@@ -1474,20 +1474,23 @@ function renderClientsUnderItem(rows) {
     if(!clients[r.clientID])clients[r.clientID]={name:r.clientName||r.clientID,rows:[]};
     clients[r.clientID].rows.push(r);
   });
+  const sku=rows[0]?.itemSKU||'';
+  const sq=sku?getWmsQty(sku,rows):null;
+  const sqFmt=sq!=null?fmt0(sq):'—';
   if (S.dateMode==='range' || S.dateMode==='openorders') {
-    let h=`<div class="tw"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th></tr></thead><tbody>`;
+    let h=`<div class="tw"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th><th class="sortable" style="color:var(--acc2)">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0,tc=0;
     Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
       const{cash,qty}=sumRows(cl.rows);tq+=qty;tc+=cash;
-      h+=`<tr><td>${esc(cid)}</td><td title="${esc(cl.name)}">${cl.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td></tr>`;
+      h+=`<tr><td>${esc(cid)}</td><td title="${esc(cl.name)}">${cl.name}</td><td data-sv="${qty}">${fmt(qty)}</td><td data-sv="${cash}">${fmt(cash)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sqFmt}</td></tr>`;
     });
-    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td></tr></tfoot></table></div>`;
+    h+=`</tbody><tfoot><tr><td>—</td><td>Total</td><td>${fmt(tq)}</td><td>${fmt(tc)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
     return h;
   }
   const months=getSortedMonths();
   let h=`<div class="tw" style="overflow-x:auto"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
   months.forEach(mk=>{const[y,m]=mk.split('-');h+=`<th class="sortable">${MN[+m-1]} ${y}<br/><small>(cash/qty)</small><span class="si"> ↕</span></th>`;});
-  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th></tr></thead><tbody>`;
+  h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable" style="color:var(--acc2)">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0;const gmc={},gmq={};
   Object.entries(clients).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([cid,cl])=>{
     let rc=0,rq=0;
@@ -1499,12 +1502,12 @@ function renderClientsUnderItem(rows) {
       h+=`<td data-sv="${cash}" data-cash="${cash}" data-qty="${qty}">${fmt0(cash)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(qty)})</span></td>`;
       rc+=cash;rq+=qty;gmc[mk]=(gmc[mk]||0)+cash;gmq[mk]=(gmq[mk]||0)+qty;
     });
-    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td></tr>`;
+    h+=`<td data-sv="${rc}" style="font-weight:700">${fmt(rc)}</td><td data-sv="${rq}" class="cm">${fmt(rq)}</td><td data-sv="${sq??-1}" style="color:var(--acc2)">${sqFmt}</td></tr>`;
     gc+=rc;gq+=rq;
   });
   h+=`</tbody><tfoot><tr><td>—</td><td>Total</td>`;
   months.forEach(mk=>{h+=`<td data-cash="${gmc[mk]||0}" data-qty="${gmq[mk]||0}">${fmt0(gmc[mk]||0)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(gmq[mk]||0)})</span></td>`;});
-  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td></tr></tfoot></table></div>`;
+  h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
   return h;
 }
 
