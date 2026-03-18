@@ -1445,7 +1445,7 @@ function renderItemsUnderClient(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1457,7 +1457,7 @@ function renderItemsUnderClient(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
@@ -1536,7 +1536,7 @@ function renderItemsSummaryTable(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1548,7 +1548,7 @@ function renderItemsSummaryTable(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
@@ -1590,7 +1590,7 @@ function renderClientsUnderItem(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1601,7 +1601,7 @@ function renderClientsUnderItem(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}" data-pv="${c2}" data-pqty="${q2}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
   return h;
