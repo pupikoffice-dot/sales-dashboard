@@ -1432,7 +1432,7 @@ function renderItemsUnderClient(rows) {
   const cols=getDualMonthCols();
   const clientID=rows[0]?.clientID||null;
   const coRaw=S.raw.filter(r=>r.company===S.co&&r.clientID===clientID);
-  let h = `<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  let h = `<div class="tw tw-months" style="overflow-x:auto"><table class="tw-dual-months"><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
   cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
@@ -1445,7 +1445,7 @@ function renderItemsUnderClient(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1457,7 +1457,7 @@ function renderItemsUnderClient(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
@@ -1523,7 +1523,7 @@ function renderItemsSummaryTable(rows) {
   }
   const cols=getDualMonthCols();
   const coRaw=S.raw.filter(r=>r.company===S.co);
-  let h=`<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
+  let h=`<div class="tw tw-months" style="overflow-x:auto"><table class="tw-dual-months"><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th>`;
   cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
@@ -1536,7 +1536,7 @@ function renderItemsSummaryTable(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1548,7 +1548,7 @@ function renderItemsSummaryTable(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td>—</td></tr></tfoot></table></div>`;
   return h;
@@ -1577,7 +1577,7 @@ function renderClientsUnderItem(rows) {
   }
   const cols=getDualMonthCols();
   const coRaw=S.raw.filter(r=>r.company===S.co&&r.itemSKU===sku);
-  let h=`<div class="tw tw-months" style="overflow-x:auto"><table><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
+  let h=`<div class="tw tw-months" style="overflow-x:auto"><table class="tw-dual-months"><thead><tr><th class="sortable">Client ID<span class="si"> ↕</span></th><th class="sortable">Client Name<span class="si"> ↕</span></th>`;
   cols.forEach(dc=>{h+=`<th class="sortable">${MN[dc.m-1]}<br/><small style="color:var(--muted)">${dc.cur}/${String(dc.prev).slice(2)}</small><span class="si"> ↕</span></th>`;});
   h+=`<th class="sortable" data-pie-cash>Total Cash<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Total Qty<span class="si"> ↕</span></th><th class="sortable" style="color:var(--acc2)">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
   let gc=0,gq=0;const gmc1={},gmq1={},gmc2={},gmq2={};
@@ -1590,7 +1590,7 @@ function renderClientsUnderItem(rows) {
       const c1=f1.reduce((a,r)=>a+(r.cash||0),0),q1=f1.reduce((a,r)=>a+(r.qty||0),0);
       const c2=f2.reduce((a,r)=>a+(r.cash||0),0),q2=f2.reduce((a,r)=>a+(r.qty||0),0);
       const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-      h+=`<td data-sv="${c1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+      h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
       rc+=c1;rq+=q1;gmc1[dc.m]=(gmc1[dc.m]||0)+c1;gmq1[dc.m]=(gmq1[dc.m]||0)+q1;
       gmc2[dc.m]=(gmc2[dc.m]||0)+c2;gmq2[dc.m]=(gmq2[dc.m]||0)+q2;
     });
@@ -1601,7 +1601,7 @@ function renderClientsUnderItem(rows) {
   cols.forEach(dc=>{
     const c1=gmc1[dc.m]||0,q1=gmq1[dc.m]||0,c2=gmc2[dc.m]||0,q2=gmq2[dc.m]||0;
     const s1=c1<c2?'color:var(--red)':'',s2=c2<c1?'color:var(--red)':'';
-    h+=`<td><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
+    h+=`<td data-sv="${c1}" data-qty="${q1}"><div style="${s1}">${fmt0(c1)}<br/><span class="cm" style="font-size:.72rem">(${fmt0(q1)})</span></div><div class="mo-prev" style="${s2}">${fmt0(c2)}<br/><span class="cm" style="font-size:.65rem">(${fmt0(q2)})</span></div></td>`;
   });
   h+=`<td data-sv="${gc}">${fmt(gc)}</td><td data-sv="${gq}" class="cm">${fmt(gq)}</td><td style="color:var(--acc2)">${sqFmt}</td></tr></tfoot></table></div>`;
   return h;
@@ -1843,8 +1843,9 @@ function dlTable(btn) {
   }
 }
 
-// Returns true if table has monthly combined cash/qty cells
+// Returns true if table is a monthly (dual-year or legacy combined) table
 function _isMonthlyTable(table) {
+  if (table.classList.contains('tw-dual-months')) return true;
   return [...table.querySelectorAll('thead th')].some(th => {
     const c = th.cloneNode(true);
     c.querySelectorAll('.si').forEach(e => e.remove());
@@ -1945,44 +1946,83 @@ function _buildFlatCSV(sectionData) {
 // Extract monthly split data as JS arrays (for XLS export).
 // Returns {cashRows: [[...], ...], qtyRows: [[...], ...]}
 // sectionData = [{id, name, table}]
+// Handles both legacy (cash/qty) tables and new dual-year tables (tw-dual-months).
+// Dual-year column layout: SKU(0) Name(1) months(2..n-4) TotalCash(n-3) TotalQty(n-2) Stock(n-1)
 function _extractFlatSplitRows(sectionData) {
   function buildRows(mode) {
     const rows = [];
     let hdrDone = false;
     sectionData.forEach(({id, name, table}) => {
+      const isDual = table.classList.contains('tw-dual-months');
       const ths = [...table.querySelectorAll('thead th')];
       const n   = ths.length;
-      const cleanHdrs = ths.map(th => {
-        const c = th.cloneNode(true);
-        c.querySelectorAll('.si').forEach(e => e.remove());
-        return c.textContent.trim().replace(/\s+/g, ' ').replace(/\s*\(cash\/qty\)/i, '').trim();
-      });
       if (!hdrDone) {
-        const hdrs = mode === 'cash'
-          ? cleanHdrs.slice(0, n - 1)
-          : [...cleanHdrs.slice(0, n - 2), cleanHdrs[n - 1]];
-        rows.push(['ID / SKU', 'Name', ...hdrs]);
+        if (isDual) {
+          // Cash tab skips TotalQty (n-2); Qty tab skips TotalCash (n-3)
+          const skipI = mode === 'cash' ? n-2 : n-3;
+          const hdrRow = ['ID / SKU', 'Name'];
+          ths.slice(2).forEach((th, j) => {
+            if (j+2 === skipI) return;
+            const c = th.cloneNode(true);
+            c.querySelectorAll('.si').forEach(e => e.remove());
+            hdrRow.push(c.textContent.trim().replace(/\s+/g,' '));
+          });
+          rows.push(hdrRow);
+        } else {
+          const cleanHdrs = ths.map(th => {
+            const c = th.cloneNode(true);
+            c.querySelectorAll('.si').forEach(e => e.remove());
+            return c.textContent.trim().replace(/\s+/g,' ').replace(/\s*\(cash\/qty\)/i,'').trim();
+          });
+          const hdrs = mode === 'cash'
+            ? cleanHdrs.slice(0, n-1)
+            : [...cleanHdrs.slice(0, n-2), cleanHdrs[n-1]];
+          rows.push(['ID / SKU', 'Name', ...hdrs]);
+        }
         hdrDone = true;
       }
       [...table.querySelectorAll('tbody tr, tfoot tr')].forEach(row => {
         const cells = [...row.querySelectorAll('td')];
+        if (!cells.length) return;
         const out = [];
-        cells.forEach((td, i) => {
-          if (mode === 'cash' && i === n - 1) return;
-          if (mode === 'qty'  && i === n - 2) return;
-          if (i <= 1) {
+        if (isDual) {
+          const skipI = mode === 'cash' ? n-2 : n-3;
+          // First two cols: ID / Name — strip .mo-prev noise
+          [cells[0], cells[1]].forEach(td => {
             const c = td.cloneNode(true);
-            c.querySelectorAll('.si, .cm').forEach(e => e.remove());
+            c.querySelectorAll('.si,.cm,.mo-prev').forEach(e => e.remove());
             out.push(c.textContent.trim());
-          } else if (i >= 2 && i <= n - 3) {
-            out.push(Number(mode === 'cash'
-              ? (td.dataset.cash ?? td.dataset.sv ?? 0)
-              : (td.dataset.qty  ?? 0)));
-          } else {
-            const v = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g, '').trim();
-            out.push(v !== '' && !isNaN(v) ? Number(v) : v);
+          });
+          for (let i = 2; i < cells.length; i++) {
+            if (i === skipI) continue;
+            const td = cells[i];
+            if (i <= n-4) {
+              // Month cell: read data attribute (current year only, no prior year)
+              out.push(Number(mode === 'cash' ? (td.dataset.sv ?? 0) : (td.dataset.qty ?? 0)));
+            } else {
+              // TotalCash / TotalQty / Stock
+              const v = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g,'').trim();
+              out.push(v !== '' && !isNaN(v) ? Number(v) : v);
+            }
           }
-        });
+        } else {
+          cells.forEach((td, i) => {
+            if (mode === 'cash' && i === n-1) return;
+            if (mode === 'qty'  && i === n-2) return;
+            if (i <= 1) {
+              const c = td.cloneNode(true);
+              c.querySelectorAll('.si,.cm').forEach(e => e.remove());
+              out.push(c.textContent.trim());
+            } else if (i >= 2 && i <= n-3) {
+              out.push(Number(mode === 'cash'
+                ? (td.dataset.cash ?? td.dataset.sv ?? 0)
+                : (td.dataset.qty  ?? 0)));
+            } else {
+              const v = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g,'').trim();
+              out.push(v !== '' && !isNaN(v) ? Number(v) : v);
+            }
+          });
+        }
         rows.push([id, name, ...out]);
       });
     });
