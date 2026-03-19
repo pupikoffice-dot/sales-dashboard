@@ -738,11 +738,12 @@ const S = {
 const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // ══ Load JSON ════════════════════════════════════════════════
+// Skip Hebrew-only SKUs (e.g. "סך הכל" total rows from WMS files)
+function _isWmsTotalRow(sku) { return /^[\u0590-\u05FF\s]+$/.test(sku); }
 function _loadData(data) {
   S.raw = data.rows || data;
   S.wmsStock = {};
   S.wmsNames = {};
-  const _isWmsTotalRow = sku => /^[\u0590-\u05FF\s]+$/.test(sku);
   (data.wmsRows || []).forEach(r => {
     if (!r.itemSKU || _isWmsTotalRow(r.itemSKU)) return;
     if (!S.wmsStock[r.company]) S.wmsStock[r.company] = {};
