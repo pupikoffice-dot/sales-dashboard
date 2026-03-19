@@ -742,8 +742,9 @@ function _loadData(data) {
   S.raw = data.rows || data;
   S.wmsStock = {};
   S.wmsNames = {};
+  const _isWmsTotalRow = sku => /^[\u0590-\u05FF\s]+$/.test(sku);
   (data.wmsRows || []).forEach(r => {
-    if (!r.itemSKU || r.itemSKU === '\u05E1\u05DA \u05D4\u05DB\u05DC') return;
+    if (!r.itemSKU || _isWmsTotalRow(r.itemSKU)) return;
     if (!S.wmsStock[r.company]) S.wmsStock[r.company] = {};
     S.wmsStock[r.company][r.itemSKU] = (S.wmsStock[r.company][r.itemSKU] || 0) + r.qtyInStock;
     if (r.itemName) {
@@ -1230,7 +1231,7 @@ function renderStockView() {
       </tr></thead><tbody>`;
       Object.entries(skus).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
         const wq=wmsData[sku]??null;
-        if (!wq || sku === '\u05E1\u05DA \u05D4\u05DB\u05DC') return;
+        if (!wq || _isWmsTotalRow(sku)) return;
         const avail=wq!=null?wq-it.ooQty:null;
         const aStyle=avail!=null?(avail<0?'color:var(--red)':'color:var(--grn)'):'color:var(--muted)';
         h+=`<tr>
