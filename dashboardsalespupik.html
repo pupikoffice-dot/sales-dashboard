@@ -368,6 +368,15 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 }
 .sbar-search:focus { border-color: var(--acc); }
 .sbar-search::placeholder { color: var(--muted); }
+/* ── SKU column inline filter ── */
+.sku-col-filter {
+  display: block; width: 90%; margin: 5px auto 0;
+  padding: 2px 6px; font-size: .68rem; border-radius: 4px;
+  border: 1px solid var(--bdr); background: var(--bg); color: var(--txt);
+  box-sizing: border-box; font-weight: 400;
+}
+.sku-col-filter:focus { outline: none; border-color: var(--acc); }
+.sku-col-filter::placeholder { color: var(--muted); }
 .sbar-minimize-btn {
   background: var(--sur2);
   border: 1px solid var(--bdr);
@@ -1817,6 +1826,50 @@ function injectDlButtons() {
       (hasPie ? ' <button class="dl-btn" onclick="dlTablePie(this)">📊 Chart</button>' : '') +
       (hasBar  ? ' <button class="dl-btn" onclick="dlCashBar(this)">📊 Chart</button>'  : '');
     tw.parentNode.insertBefore(bar, tw);
+  });
+  attachSKUFilter();
+}
+
+// ══ SKU column inline filter ══════════════════════════════════
+function attachSKUFilter() {
+  document.querySelectorAll('#main table').forEach(table => {
+    if (table._skuFilter) return;
+    const ths = [...table.querySelectorAll('thead th')];
+    const skuIdx = ths.findIndex(th => /^sku\b/i.test(th.textContent.trim()));
+    if (skuIdx === -1) return;
+    table._skuFilter = true;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'sku-col-filter';
+    inp.placeholder = '▾ filter…';
+    inp.addEventListener('click', e => e.stopPropagation());
+    inp.addEventListener('input', () => _filterBySKU(table, skuIdx, inp.value.trim().toLowerCase()));
+    ths[skuIdx].appendChild(inp);
+  });
+}
+function _filterBySKU(table, skuIdx, q) {
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const cell = tr.querySelectorAll('td')[skuIdx];
+    const text = (cell?.textContent || '').toLowerCase();
+    tr.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  const footRow = table.querySelector('tfoot tr');
+  if (!footRow) return;
+  const footCells = [...footRow.querySelectorAll('td')];
+  const visRows = [...tbody.querySelectorAll('tr')].filter(r => r.style.display !== 'none');
+  footCells.forEach((fc, ci) => {
+    if (ci <= 1) return;
+    const vals = visRows.map(tr => {
+      const td = tr.querySelectorAll('td')[ci];
+      const sv = td?.dataset?.sv;
+      if (sv == null) return null;
+      const n = Number(sv);
+      return (isFinite(n) && n >= 0) ? n : null;
+    }).filter(v => v !== null);
+    if (!vals.length) return;
+    fc.textContent = fmt(vals.reduce((a, b) => a + b, 0));
   });
 }
 
