@@ -1239,11 +1239,13 @@ function renderStockView() {
         <th class="sortable">Open Orders Qty<span class="si"> ↕</span></th>
         <th class="sortable">Available<span class="si"> ↕</span></th>
       </tr></thead><tbody>`;
+      let tLMQ=0,tWMS=0,tOO=0,tAvail=0;
       Object.entries(skus).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
         const wq=wmsData[sku]??null;
         if (!wq || _isWmsTotalRow(sku)) return;
         const avail=wq!=null?wq-it.ooQty:null;
         const aStyle=avail!=null?(avail<0?'color:var(--red)':'color:var(--grn)'):'color:var(--muted)';
+        tLMQ+=it.lastMoQty; tWMS+=wq; tOO+=it.ooQty; tAvail+=(avail??0);
         h+=`<tr>
           <td>${esc(sku)}</td>
           <td title="${esc(it.name)}">${it.name}</td>
@@ -1253,7 +1255,14 @@ function renderStockView() {
           <td data-sv="${avail??-99999}" style="${aStyle}">${avail!=null?fmt0(avail):'—'}</td>
         </tr>`;
       });
-      h += `</tbody></table></div>`;
+      const tAvailStyle=tAvail<0?'color:var(--red)':'color:var(--grn)';
+      h += `</tbody><tfoot><tr>
+        <td>—</td><td>Total</td>
+        <td data-sv="${tLMQ}">${fmt0(tLMQ)}</td>
+        <td data-sv="${tWMS}" style="color:var(--acc2)">${fmt0(tWMS)}</td>
+        <td data-sv="${tOO}">${fmt0(tOO)}</td>
+        <td data-sv="${tAvail}" style="${tAvailStyle}">${fmt0(tAvail)}</td>
+      </tr></tfoot></table></div>`;
       showMain(h);
       makeStickyHeaders();
       injectDlButtons();
@@ -1864,9 +1873,9 @@ function _filterBySKU(table, skuIdx, q) {
     const vals = visRows.map(tr => {
       const td = tr.querySelectorAll('td')[ci];
       const sv = td?.dataset?.sv;
-      if (sv == null) return null;
+      if (sv == null || sv === '') return null;
       const n = Number(sv);
-      return (isFinite(n) && n >= 0) ? n : null;
+      return (isFinite(n) && sv !== '-99999' && sv !== '-1') ? n : null;
     }).filter(v => v !== null);
     if (!vals.length) return;
     fc.textContent = fmt(vals.reduce((a, b) => a + b, 0));
