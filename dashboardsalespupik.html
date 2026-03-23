@@ -1520,7 +1520,7 @@ function renderItemsSummaryTable(rows) {
     if(!items[sku])items[sku]={name:r.itemName||sku,rows:[]};
     items[sku].rows.push(r);
   });
-  if (S.dateMode==='range') {
+  if (S.dateMode==='range' || S.dateMode==='openorders') {
     let h=`<div class="tw"><table><thead><tr><th class="sortable">SKU<span class="si"> ↕</span></th><th class="sortable">Item Name<span class="si"> ↕</span></th><th class="sortable" data-pie-qty>Qty<span class="si"> ↕</span></th><th class="sortable" data-pie-cash>Cash<span class="si"> ↕</span></th><th class="sortable">Stock<span class="si"> ↕</span></th></tr></thead><tbody>`;
     let tq=0,tc=0;
     Object.entries(items).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([sku,it])=>{
