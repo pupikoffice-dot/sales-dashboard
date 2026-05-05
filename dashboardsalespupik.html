@@ -1926,12 +1926,34 @@ function _isMonthlyTable(table) {
 }
 
 // Client "💰 Cash summary" in months mode: Metric column + two rows (💰 Cash / 📦 Qty), not combined cells.
-function _isMetricCashQtyTable(table) {
-  const th0 = table.querySelector('thead tr th');
-  if (!th0) return false;
+// Header can pick up RTL / invisible marks; tbody row labels are a reliable fallback.
+function _stripBidi(s) {
+  return String(s ?? '').replace(/[\u200e\u200f\u202a-\u202e\ufeff]/g, '');
+}
+function _firstTheadLeadingText(table) {
+  const th0 = table.querySelector('thead > tr:first-child th') || table.querySelector('thead th');
+  if (!th0) return '';
   const c = th0.cloneNode(true);
   c.querySelectorAll('.si').forEach(e => e.remove());
-  return c.textContent.trim().replace(/\s+/g, ' ') === 'Metric';
+  return _stripBidi(c.textContent).trim().replace(/\s+/g, ' ');
+}
+function _tbodyHasExclusiveCashQtyRows(table) {
+  const rows = [...table.querySelectorAll('tbody tr')].filter(tr => tr.querySelectorAll('td').length >= 2);
+  if (rows.length < 2) return false;
+  let sawCash = false, sawQty = false;
+  for (const tr of rows) {
+    const t = _stripBidi(tr.cells[0]?.textContent || '').trim();
+    if ((/\bcash\b/i.test(t) && !/\bqty\b/i.test(t)) || (t.includes('💰') && !t.includes('📦')))
+      sawCash = true;
+    if ((/\bqty\b/i.test(t) && !/\bcash\b/i.test(t)) || (t.includes('📦') && !t.includes('💰')))
+      sawQty = true;
+  }
+  return sawCash && sawQty;
+}
+function _isMetricCashQtyTable(table) {
+  const lead = _firstTheadLeadingText(table);
+  if (/^metric$/i.test(lead)) return true;
+  return _tbodyHasExclusiveCashQtyRows(table);
 }
 
 function _wantsCashQtyXls(table) {
