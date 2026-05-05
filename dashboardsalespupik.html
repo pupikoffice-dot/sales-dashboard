@@ -1907,7 +1907,7 @@ function dlTable(btn) {
   const section = tw.closest('.section');
   const id   = section?.dataset.exportId   || '';
   const name = section?.dataset.exportName || '';
-  if (_isMonthlyTable(table)) {
+  if (_wantsCashQtyXls(table)) {
     const {cashRows, qtyRows} = _extractFlatSplitRows([{id, name, table}]);
     _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}]);
   } else {
@@ -1923,6 +1923,48 @@ function _isMonthlyTable(table) {
     c.querySelectorAll('.si').forEach(e => e.remove());
     return c.textContent.includes('cash/qty');
   });
+}
+
+// Client "💰 Cash summary" in months mode: Metric column + two rows (💰 Cash / 📦 Qty), not combined cells.
+function _isMetricCashQtyTable(table) {
+  const th0 = table.querySelector('thead tr th');
+  if (!th0) return false;
+  const c = th0.cloneNode(true);
+  c.querySelectorAll('.si').forEach(e => e.remove());
+  return c.textContent.trim().replace(/\s+/g, ' ') === 'Metric';
+}
+
+function _wantsCashQtyXls(table) {
+  return _isMonthlyTable(table) || _isMetricCashQtyTable(table);
+}
+
+function _appendMetricCashQtyExportBlock(rows, mode, id, name, table, idx) {
+  const ths = [...table.querySelectorAll('thead th')].map(th => {
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.si').forEach(e => e.remove());
+    return c.textContent.trim().replace(/\s+/g, ' ');
+  });
+  if (ths.length < 2) return;
+  const monthHdrs = ths.slice(1, -1);
+  const totalHdr = ths[ths.length - 1] || 'Total';
+  const label = (name && String(name).trim()) || (id && String(id).trim()) || ('Section ' + (idx + 1));
+  if (idx > 0) rows.push(['']);
+  rows.push([label]);
+  rows.push(['ID / SKU', 'Name', ...monthHdrs, totalHdr]);
+  const wantCash = mode === 'cash';
+  const picked = [...table.querySelectorAll('tbody tr')].find(tr => {
+    const m = (tr.cells[0]?.textContent || '').trim();
+    return wantCash ? (/\bCash\b/i.test(m) || m.includes('💰')) : (/\bQty\b/i.test(m) || m.includes('📦'));
+  });
+  if (!picked) return;
+  const vals = [...picked.querySelectorAll('td')].slice(1).map(td => {
+    const raw = td.dataset.sv !== undefined && td.dataset.sv !== ''
+      ? td.dataset.sv : td.textContent.replace(/,/g, '').trim();
+    if (raw === '' || raw === '—') return raw;
+    const n = Number(raw);
+    return isNaN(n) ? raw : n;
+  });
+  rows.push([id, name, ...vals]);
 }
 
 // Build CSV string for a simple (non-monthly) table
@@ -2017,71 +2059,71 @@ function _buildFlatCSV(sectionData) {
 
 // Extract monthly split data as JS arrays (for XLS export).
 // Returns {cashRows: [[...], ...], qtyRows: [[...], ...]}
+// Each section (parameter) is its own block: title row, column header row(s), body — on both Cash and Qty tabs.
 // sectionData = [{id, name, table}]
 // Dual-year column layout: SKU(0) Name(1) months(2..n-4) TotalCash(n-3) TotalQty(n-2) Stock(n-1)
 // Each data row emits TWO rows: current year on top, prior year below.
 function _extractFlatSplitRows(sectionData) {
   function buildRows(mode) {
     const rows = [];
-    let hdrDone = false;
-    sectionData.forEach(({id, name, table}) => {
+    sectionData.forEach(({id, name, table}, idx) => {
+      if (_isMetricCashQtyTable(table)) {
+        _appendMetricCashQtyExportBlock(rows, mode, id, name, table, idx);
+        return;
+      }
       const isDual = table.classList.contains('tw-dual-months');
       const ths = [...table.querySelectorAll('thead th')];
       const n   = ths.length;
-      // Cash tab skips TotalQty (n-2); Qty tab skips TotalCash (n-3)
       const skipI = isDual ? (mode === 'cash' ? n-2 : n-3) : -1;
-      if (!hdrDone) {
-        if (isDual) {
-          // Header starts directly with table columns (no extra id/name prefix)
-          const hdrRow = [];
-          ths.forEach((th, i) => {
-            if (i === skipI) return;
-            const c = th.cloneNode(true);
-            c.querySelectorAll('.si').forEach(e => e.remove());
-            hdrRow.push(c.textContent.trim().replace(/\s+/g,' '));
-          });
-          rows.push(hdrRow);
-        } else {
-          const cleanHdrs = ths.map(th => {
-            const c = th.cloneNode(true);
-            c.querySelectorAll('.si').forEach(e => e.remove());
-            return c.textContent.trim().replace(/\s+/g,' ').replace(/\s*\(cash\/qty\)/i,'').trim();
-          });
-          const hdrs = mode === 'cash'
-            ? cleanHdrs.slice(0, n-1)
-            : [...cleanHdrs.slice(0, n-2), cleanHdrs[n-1]];
-          rows.push(['ID / SKU', 'Name', ...hdrs]);
-        }
-        hdrDone = true;
+
+      const label = (name && String(name).trim()) || (id && String(id).trim()) || ('Section ' + (idx + 1));
+      if (idx > 0) rows.push(['']);
+      rows.push([label]);
+
+      if (isDual) {
+        const hdrRow = [];
+        ths.forEach((th, i) => {
+          if (i === skipI) return;
+          const c = th.cloneNode(true);
+          c.querySelectorAll('.si').forEach(e => e.remove());
+          hdrRow.push(c.textContent.trim().replace(/\s+/g,' '));
+        });
+        rows.push(hdrRow);
+      } else {
+        const cleanHdrs = ths.map(th => {
+          const c = th.cloneNode(true);
+          c.querySelectorAll('.si').forEach(e => e.remove());
+          return c.textContent.trim().replace(/\s+/g,' ').replace(/\s*\(cash\/qty\)/i,'').trim();
+        });
+        const hdrs = mode === 'cash'
+          ? cleanHdrs.slice(0, n-1)
+          : [...cleanHdrs.slice(0, n-2), cleanHdrs[n-1]];
+        rows.push(['ID / SKU', 'Name', ...hdrs]);
       }
+
       [...table.querySelectorAll('tbody tr, tfoot tr')].forEach(row => {
         const cells = [...row.querySelectorAll('td')];
         if (!cells.length) return;
         if (isDual) {
-          // Emit current-year row + prior-year row
           const curRow = [], prevRow = [];
           let prevTotal = 0;
           for (let i = 0; i < cells.length; i++) {
             if (i === skipI) continue;
             const td = cells[i];
             if (i <= 1) {
-              // SKU / Name — strip prior-year sub-content
               const c = td.cloneNode(true);
               c.querySelectorAll('.si,.cm,.mo-prev').forEach(e => e.remove());
               const txt = c.textContent.trim();
               curRow.push(txt); prevRow.push(txt);
             } else if (i <= n-4) {
-              // Month cell: separate current/prior year values
               const cur  = Number(mode === 'cash' ? (td.dataset.sv    ?? 0) : (td.dataset.qty   ?? 0));
               const prev = Number(mode === 'cash' ? (td.dataset.pv    ?? 0) : (td.dataset.pqty  ?? 0));
               curRow.push(cur); prevRow.push(prev);
               prevTotal += prev;
             } else {
-              // Total column or Stock
               const v   = td.dataset.sv !== undefined ? td.dataset.sv : td.textContent.replace(/,/g,'').trim();
               const num = v !== '' && !isNaN(v) ? Number(v) : v;
               curRow.push(num);
-              // Stock (n-1): same for both years; Total column: computed prior sum
               prevRow.push(i === n-1 ? num : prevTotal);
             }
           }
@@ -2126,15 +2168,30 @@ function _downloadXLS(sheetsData, filename) {
     `  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n` +
     `<Styles>\n` +
     `  <Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2d3561" ss:Pattern="Solid"/></Style>\n` +
+    `  <Style ss:ID="st"><Font ss:Bold="1" ss:Size="12"/><Interior ss:Color="#e8eaf0" ss:Pattern="Solid"/></Style>\n` +
     `</Styles>\n`;
   sheetsData.forEach(({name, rows}) => {
     xml += `<Worksheet ss:Name="${xe(name)}">\n<Table>\n`;
-    rows.forEach((row, ri) => {
+    let expectColHeader = false;
+    rows.forEach(row => {
+      const isBlankSep = row.length === 1 && row[0] === '';
+      if (isBlankSep) expectColHeader = false;
+      const isSectionTitle = row.length === 1 && row[0] !== '';
+      let sty = '';
+      if (isSectionTitle) {
+        sty = ' ss:StyleID="st"';
+        expectColHeader = true;
+      } else if (!isBlankSep && row[0] === 'ID / SKU') {
+        sty = ' ss:StyleID="h"';
+        expectColHeader = false;
+      } else if (expectColHeader) {
+        sty = ' ss:StyleID="h"';
+        expectColHeader = false;
+      }
       xml += '  <Row>';
       row.forEach(cell => {
         const v   = cell ?? '';
         const num = typeof v === 'number';
-        const sty = ri === 0 ? ' ss:StyleID="h"' : '';
         xml += num
           ? `<Cell${sty}><Data ss:Type="Number">${v}</Data></Cell>`
           : `<Cell${sty}><Data ss:Type="String">${xe(v)}</Data></Cell>`;
@@ -2167,20 +2224,19 @@ function exportAll() {
     if (!table) return;
     const id   = sec.dataset.exportId   || '';
     const name = sec.dataset.exportName || '';
-    const isMonthly = _isMonthlyTable(table);
-    if (isMonthly) anyMonthly = true; else anyStd = true;
-    sectionData.push({id, name, table, isMonthly});
+    const xlsCashQty = _wantsCashQtyXls(table);
+    if (xlsCashQty) anyMonthly = true; else anyStd = true;
+    sectionData.push({id, name, table, xlsCashQty});
   });
 
   if (!sectionData.length) return;
 
   const date    = new Date().toISOString().slice(0, 10);
-  const mthData = sectionData.filter(d =>  d.isMonthly);
-  const stdData = sectionData.filter(d => !d.isMonthly);
+  const xlsData = sectionData.filter(d => d.xlsCashQty);
+  const stdData = sectionData.filter(d => !d.xlsCashQty);
 
-  if (mthData.length) {
-    // Monthly → XLS with Cash tab and Qty tab
-    const {cashRows, qtyRows} = _extractFlatSplitRows(mthData);
+  if (xlsData.length) {
+    const {cashRows, qtyRows} = _extractFlatSplitRows(xlsData);
     _downloadXLS([{name:'Cash', rows:cashRows}, {name:'Qty', rows:qtyRows}],
                  `export_${date}.xls`);
   }
