@@ -2524,6 +2524,27 @@ function showOversite() {
   const returnsMTD = S.raw.filter(r => r.company === 'returns-pupik' && Number(r.year) === curYear && Number(r.month) === curMonth);
   const { cash: rmCash, qty: rmQty } = sumRows(returnsMTD);
 
+  const retItemMap = {};
+  returnsMTD.forEach(r => {
+    if (!r.itemSKU) return;
+    if (!retItemMap[r.itemSKU]) retItemMap[r.itemSKU] = { name: r.itemName || r.itemSKU, cash: 0, qty: 0 };
+    retItemMap[r.itemSKU].cash += r.cash || 0;
+    retItemMap[r.itemSKU].qty  += r.qty  || 0;
+  });
+  const retTop10 = Object.entries(retItemMap).sort((a, b) => b[1].cash - a[1].cash).slice(0, 10);
+  const retTop10Html = retTop10.length
+    ? `<div class="tw"><table><thead><tr>
+        <th style="text-align:left">#</th>
+        <th style="text-align:left">Item</th>
+        <th>Cash</th><th>Qty</th>
+       </tr></thead><tbody>` +
+      retTop10.map(([sku, it], i) =>
+        `<tr><td style="text-align:left;color:var(--muted)">${i+1}</td>
+         <td style="text-align:left" title="${esc(sku)}">${esc(it.name)}</td>
+         <td>${fmt(it.cash)}</td><td class="cm">${fmt(it.qty)}</td></tr>`
+      ).join('') + '</tbody></table></div>'
+    : '<div class="ov-empty">No returns this month</div>';
+
   const itemMap = {};
   salesMTD.forEach(r => {
     if (!r.itemSKU) return;
@@ -2643,6 +2664,8 @@ function showOversite() {
         <div class="ov-kpi"><div class="ov-kpi-val" style="color:var(--red)">${fmt(rmCash)}</div><div class="ov-kpi-lbl">Cash</div></div>
         <div class="ov-kpi"><div class="ov-kpi-val">${fmt(rmQty)}</div><div class="ov-kpi-lbl">Qty</div></div>
       </div>
+      <button class="ov-toggle-btn" onclick="(function(b){const d=b.closest('.ov-section').querySelector('.ov-drop');const open=d.style.display!=='none';d.style.display=open?'none':'block';b.textContent=open?'↩️ Top 10 Returns ▾':'↩️ Top 10 Returns ▴';})(this)">↩️ Top 10 Returns ▾</button>
+      <div class="ov-drop" style="display:none">${retTop10Html}</div>
     </div>
 
     <div class="ov-section">
