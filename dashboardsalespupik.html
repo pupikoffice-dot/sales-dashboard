@@ -2460,8 +2460,13 @@ function _normalizeDebtRows(raw) {
     return { ...r, months };
   });
 }
+const _PUPIK_DEBT_AGENTS = new Set(['24', '25', '27']);
 function _debtRowsForCo(co) {
-  return (S.debtRows || []).filter(r => r.company === co);
+  return (S.debtRows || []).filter(r =>
+    r.company === co &&
+    _PUPIK_DEBT_AGENTS.has(String(r.agent)) &&
+    Number(r.clientID) > 0
+  );
 }
 function _debtMonths(months) {
   return (months || []).filter(m => m.label && !m.label.includes('יתרה מצטברת'));
