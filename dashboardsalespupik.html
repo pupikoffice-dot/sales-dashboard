@@ -2722,7 +2722,7 @@ function openDebtModal(co) {
     totM.map(v => `<td class="cr">${fmt(v)}</td>`).join('') +
     `<td class="cr" style="font-weight:700">${fmt(totGrand)}</td></tr></tfoot>`;
 
-  const _dlu = S.debtLastUpdate ? `  · Last Update: ${S.debtLastUpdate}` : '';
+  const _dlu = (window.__DEBT_LAST_UPDATE__ || S.debtLastUpdate) ? `  · Last Update: ${window.__DEBT_LAST_UPDATE__ || S.debtLastUpdate}` : '';
   document.getElementById('debtModalTitle').textContent =
     `💳 Open Debt — Pupik (Total ≥ ${_DEBT_REPORT_MIN_TOTAL})${_dlu}`;
   document.getElementById('debtModalTable').innerHTML = html;
