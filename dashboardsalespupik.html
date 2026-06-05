@@ -285,6 +285,12 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 .ov-toggle-btn:hover { color: var(--acc); border-color: var(--acc); }
 .ov-drop { margin-top: 8px; }
 
+/* ── Last-year comparison strip ── */
+.ov-ly-row { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--bdr); font-size: .74rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ov-ly-row b { color: var(--muted2); }
+.ov-ly-row .cg { color: var(--grn); font-weight: 700; }
+.ov-ly-row .cr { color: var(--amber); font-weight: 700; }
+
 /* ── Debt modal ── */
 .debt-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.72); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: center; justify-content: center; }
 .debt-modal { background: var(--sur); border: 1px solid var(--bdr); border-radius: var(--r-xl); width: min(1100px, 96vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,.7); }
@@ -2492,6 +2498,21 @@ function showOversite() {
   const salesMTD = S.raw.filter(r => r.company === co && Number(r.year) === curYear && Number(r.month) === curMonth);
   const { cash: smCash, qty: smQty } = sumRows(salesMTD);
 
+  const salesLY = S.raw.filter(r => r.company === co && Number(r.year) === curYear - 1 && Number(r.month) === curMonth);
+  const { cash: slyCash, qty: slyQty } = sumRows(salesLY);
+  const lyMonthLbl = MN[curMonth - 1] + ' ' + (curYear - 1);
+  const slyChgCash = slyCash > 0 ? ((smCash - slyCash) / slyCash * 100) : null;
+  const slyChgQty  = slyQty  > 0 ? ((smQty  - slyQty)  / slyQty  * 100) : null;
+  const salesLyHtml = (slyCash || slyQty)
+    ? `<div class="ov-ly-row">
+         vs ${lyMonthLbl} &ensp;
+         Cash: <b>${fmt(slyCash)}</b>
+         <span class="${slyChgCash !== null && slyChgCash >= 0 ? 'cg' : 'cr'}">${slyChgCash !== null ? (slyChgCash >= 0 ? '▲' : '▼') + Math.abs(slyChgCash).toFixed(1) + '%' : ''}</span>
+         &ensp; Qty: <b>${fmt(slyQty)}</b>
+         <span class="${slyChgQty !== null && slyChgQty >= 0 ? 'cg' : 'cr'}">${slyChgQty !== null ? (slyChgQty >= 0 ? '▲' : '▼') + Math.abs(slyChgQty).toFixed(1) + '%' : ''}</span>
+       </div>`
+    : '';
+
   const returnsMTD = S.raw.filter(r => r.company === 'returns-pupik' && Number(r.year) === curYear && Number(r.month) === curMonth);
   const { cash: rmCash, qty: rmQty } = sumRows(returnsMTD);
 
@@ -2600,6 +2621,7 @@ function showOversite() {
         <div class="ov-kpi"><div class="ov-kpi-val" style="color:var(--grn)">${fmt(smCash)}</div><div class="ov-kpi-lbl">Cash</div></div>
         <div class="ov-kpi"><div class="ov-kpi-val">${fmt(smQty)}</div><div class="ov-kpi-lbl">Qty</div></div>
       </div>
+      ${salesLyHtml}
     </div>
 
     <div class="ov-section">
