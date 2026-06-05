@@ -262,8 +262,10 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 .ov-header { margin-bottom: 20px; }
 .ov-header h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -.02em; color: var(--txt); }
 .ov-sub { font-size: .78rem; color: var(--muted2); }
-.ov-col { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
-.ov-col-hdr { font-size: .95rem; font-weight: 700; padding: 12px 16px; background: rgba(23,31,51,.7); border-left: 3px solid var(--acc); border-radius: var(--r); border: 1px solid var(--bdr); border-left-width: 3px; letter-spacing: -.01em; }
+.ov-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ov-col-hdr { grid-column: 1 / -1; font-size: .95rem; font-weight: 700; padding: 12px 16px; background: rgba(23,31,51,.7); border-left: 3px solid var(--acc); border-radius: var(--r); border: 1px solid var(--bdr); border-left-width: 3px; letter-spacing: -.01em; }
+@media (max-width: 900px) { .ov-col { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .ov-col { grid-template-columns: 1fr; } }
 .ov-section { background: rgba(23,31,51,.55); border: 1px solid var(--bdr); border-radius: var(--r); padding: 14px 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .ov-section-title { font-size: .68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
 .ov-kpi-row { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -277,6 +279,11 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 .ov-debt-val { font-weight: 600; color: var(--amber); }
 .ov-debt-btn { margin-top: 12px; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.3); color: var(--amber); border-radius: var(--r-full); padding: 7px 16px; font-size: .78rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; transition: all .13s; }
 .ov-debt-btn:hover { background: var(--amber); color: #472a00; border-color: var(--amber); }
+
+/* ── Oversite toggle button ── */
+.ov-toggle-btn { margin-top: 10px; width: 100%; background: var(--sur2); border: 1px solid var(--bdr); color: var(--muted2); border-radius: var(--r-full); padding: 6px 14px; font-size: .73rem; font-family: inherit; cursor: pointer; text-align: center; transition: all .13s; letter-spacing: .02em; }
+.ov-toggle-btn:hover { color: var(--acc); border-color: var(--acc); }
+.ov-drop { margin-top: 8px; }
 
 /* ── Debt modal ── */
 .debt-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.72); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: center; justify-content: center; }
@@ -2497,6 +2504,28 @@ function showOversite() {
   });
   const top10 = Object.entries(itemMap).sort((a, b) => b[1].cash - a[1].cash).slice(0, 10);
 
+  // ── Orders MTD top 10 items ──
+  const ooItemMap = {};
+  ordersMTD.forEach(r => {
+    if (!r.itemSKU) return;
+    if (!ooItemMap[r.itemSKU]) ooItemMap[r.itemSKU] = { name: r.itemName || r.itemSKU, cash: 0, qty: 0 };
+    ooItemMap[r.itemSKU].cash += r.cash || 0;
+    ooItemMap[r.itemSKU].qty  += r.qty  || 0;
+  });
+  const ooTop10 = Object.entries(ooItemMap).sort((a, b) => b[1].cash - a[1].cash).slice(0, 10);
+  const ooTop10Html = ooTop10.length
+    ? `<div class="tw"><table><thead><tr>
+        <th style="text-align:left">#</th>
+        <th style="text-align:left">Item</th>
+        <th>Cash</th><th>Qty</th>
+       </tr></thead><tbody>` +
+      ooTop10.map(([sku, it], i) =>
+        `<tr><td style="text-align:left;color:var(--muted)">${i+1}</td>
+         <td style="text-align:left" title="${esc(sku)}">${esc(it.name)}</td>
+         <td>${fmt(it.cash)}</td><td class="cm">${fmt(it.qty)}</td></tr>`
+      ).join('') + '</tbody></table></div>'
+    : '<div class="ov-empty">No order items this month</div>';
+
   const top10Html = top10.length
     ? `<div class="tw"><table><thead><tr>
         <th style="text-align:left">#</th>
@@ -2561,6 +2590,8 @@ function showOversite() {
         <div class="ov-kpi"><div class="ov-kpi-val">${fmt(omQty)}</div><div class="ov-kpi-lbl">Qty</div></div>
         <div class="ov-kpi"><div class="ov-kpi-val" style="color:var(--grn)">${fmt(omCash)}</div><div class="ov-kpi-lbl">Cash</div></div>
       </div>
+      <button class="ov-toggle-btn" onclick="(function(b){const d=b.closest('.ov-section').querySelector('.ov-drop');const open=d.style.display!=='none';d.style.display=open?'none':'block';b.textContent=open?'📦 Top 10 Orders ▾':'📦 Top 10 Orders ▴';})(this)">📦 Top 10 Orders ▾</button>
+      <div class="ov-drop" style="display:none">${ooTop10Html}</div>
     </div>
 
     <div class="ov-section">
