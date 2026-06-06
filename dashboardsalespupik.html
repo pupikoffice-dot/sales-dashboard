@@ -571,8 +571,10 @@ function _loadData(data) {
 }
 
 function wmsCoKey(co) {
-  if (co === 'openorders') return 'pupik';
+  if (co === 'openorders')    return 'pupik';
   if (co === 'openorders-mt') return 'mt';
+  if (co === 'orders-pupik')  return 'pupik';
+  if (co === 'orders-mt')     return 'mt';
   return co;
 }
 
@@ -2693,7 +2695,7 @@ function showOversite() {
 
   const monthStart = `${curYear}-${String(curMonth).padStart(2, '0')}-01`;
 
-  const co = 'pupik'; const ooCo = 'openorders';
+  const co = 'pupik'; const ooCo = 'orders-pupik';
 
   const ordersToday = S.raw.filter(r => r.company === ooCo && r.date === todayStr);
   const { cash: otCash, qty: otQty } = sumRows(ordersToday);
