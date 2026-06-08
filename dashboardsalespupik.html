@@ -212,6 +212,12 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 .sku-col-filter { display: block; width: 90%; margin: 5px auto 0; padding: 2px 6px; font-size: .68rem; border-radius: 6px; border: 1px solid var(--bdr); background: var(--sur2); color: var(--txt); box-sizing: border-box; font-weight: 400; font-family: inherit; }
 .sku-col-filter:focus { outline: none; border-color: var(--acc); }
 .sku-col-filter::placeholder { color: var(--muted); }
+.col-filter-wrap { display: flex; gap: 2px; margin-top: 3px; align-items: center; }
+.col-filter { flex: 1; min-width: 0; padding: 2px 4px; font-size: .7rem; border-radius: 3px; border: 1px solid var(--bdr); background: var(--sur2); color: var(--txt); font-family: inherit; box-sizing: border-box; }
+.col-filter:focus { outline: none; border-color: var(--acc); }
+.col-filter::placeholder { color: var(--muted); }
+.col-filter-mode { font-size: .6rem; padding: 1px 5px; border-radius: 3px; border: 1px solid var(--bdr); background: var(--acc); color: #fff; cursor: pointer; white-space: nowrap; line-height: 1.4; font-family: inherit; }
+.col-filter-mode.col-filter-mode-out { background: var(--amber); color: #1a1200; }
 .sbar-minimize-btn { background: var(--sur2); border: 1px solid var(--bdr); color: var(--muted); border-radius: var(--r-full); padding: 4px 12px; font-size: .73rem; font-family: inherit; cursor: pointer; transition: all .13s; white-space: nowrap; }
 .sbar-minimize-btn:hover { color: var(--acc); border-color: var(--acc); }
 .sbar-chart-btn { background: var(--sur2); border: 1px solid var(--bdr); color: var(--acc); border-radius: var(--r-full); padding: 4px 12px; font-size: .73rem; font-family: inherit; cursor: pointer; transition: all .13s; white-space: nowrap; }
@@ -523,6 +529,7 @@ input[type="date"]:focus { outline: none; border-color: var(--acc); }
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="data_loader.js" charset="utf-8"></script>
+<script src="dashboard-shared.js" charset="utf-8"></script>
 <script>
 'use strict';
 
@@ -1641,47 +1648,13 @@ function injectDlButtons() {
   attachSKUFilter();
 }
 
-// ══ SKU column inline filter ══════════════════════════════════
+// ══ Column inline filters (SKU, Item Name, Price) — Dashboard/shared ══
 function attachSKUFilter() {
-  document.querySelectorAll('#main table').forEach(table => {
-    if (table._skuFilter) return;
-    const ths = [...table.querySelectorAll('thead th')];
-    const skuIdx = ths.findIndex(th => /^sku\b/i.test(th.textContent.trim()));
-    if (skuIdx === -1) return;
-    table._skuFilter = true;
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'sku-col-filter';
-    inp.placeholder = '▾ filter…';
-    inp.addEventListener('click', e => e.stopPropagation());
-    inp.addEventListener('input', () => _filterBySKU(table, skuIdx, inp.value.trim().toLowerCase()));
-    ths[skuIdx].appendChild(inp);
-  });
+  const main = document.getElementById('main');
+  if (main && window.DashboardShared) window.DashboardShared.attachAllTableColumnFilters(main);
 }
-function _filterBySKU(table, skuIdx, q) {
-  const tbody = table.querySelector('tbody');
-  if (!tbody) return;
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const cell = tr.querySelectorAll('td')[skuIdx];
-    const text = (cell?.textContent || '').toLowerCase();
-    tr.style.display = (!q || text.includes(q)) ? '' : 'none';
-  });
-  const footRow = table.querySelector('tfoot tr');
-  if (!footRow) return;
-  const footCells = [...footRow.querySelectorAll('td')];
-  const visRows = [...tbody.querySelectorAll('tr')].filter(r => r.style.display !== 'none');
-  footCells.forEach((fc, ci) => {
-    if (ci <= 1) return;
-    const vals = visRows.map(tr => {
-      const td = tr.querySelectorAll('td')[ci];
-      const sv = td?.dataset?.sv;
-      if (sv == null || sv === '') return null;
-      const n = Number(sv);
-      return (isFinite(n) && sv !== '-99999' && sv !== '-1') ? n : null;
-    }).filter(v => v !== null);
-    if (!vals.length) return;
-    fc.textContent = fmt(vals.reduce((a, b) => a + b, 0));
-  });
+function _applyTableFilters(table) {
+  if (window.DashboardShared) window.DashboardShared.applyTableColumnFilters(table);
 }
 
 // Escape a value for CSV
@@ -2072,35 +2045,7 @@ function exportAll() {
 
 // ── Column sort ───────────────────────────────────────────────
 function sortTable(th) {
-  const table = th.closest('table');
-  const tbody = table.querySelector('tbody');
-  if (!tbody) return;
-  const idx = th.cellIndex;
-  const asc = th.dataset.sd !== 'asc';
-  // Reset all headers in this table
-  table.querySelectorAll('th.sortable').forEach(h => {
-    h.dataset.sd = '';
-    const si = h.querySelector('.si');
-    if (si) si.textContent = ' ↕';
-  });
-  th.dataset.sd = asc ? 'asc' : 'desc';
-  const si = th.querySelector('.si');
-  if (si) si.textContent = asc ? ' ↑' : ' ↓';
-  const rows = [...tbody.querySelectorAll('tr')];
-  rows.sort((a, b) => {
-    const ac = a.cells[idx], bc = b.cells[idx];
-    if (!ac || !bc) return 0;
-    // Use data-sv for numeric sort value if present
-    const av = (ac.dataset.sv !== undefined && ac.dataset.sv !== '') ? Number(ac.dataset.sv) : NaN;
-    const bv = (bc.dataset.sv !== undefined && bc.dataset.sv !== '') ? Number(bc.dataset.sv) : NaN;
-    if (!isNaN(av) && !isNaN(bv)) return asc ? av - bv : bv - av;
-    // Fall back to text sort (strips commas for numbers)
-    const at = ac.textContent.trim(), bt = bc.textContent.trim();
-    const an = parseFloat(at.replace(/,/g,'')), bn = parseFloat(bt.replace(/,/g,''));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
-    return asc ? at.localeCompare(bt) : bt.localeCompare(at);
-  });
-  rows.forEach(r => tbody.appendChild(r));
+  if (window.DashboardShared) return window.DashboardShared.sortTableDom(th);
 }
 // Delegated click handler — catches all sortable headers inside #main
 document.getElementById('main').addEventListener('click', e => {
