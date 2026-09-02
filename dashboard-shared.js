@@ -114,12 +114,21 @@ var DashboardShared = (() => {
     return rows;
   }
 
+  // src/itemNames.ts
+  function preferItemName(current, candidate) {
+    const next = String(candidate ?? "").trim();
+    if (!next) return current;
+    if (!current.trim()) return next;
+    return next.length > current.length ? next : current;
+  }
+
   // src/pieData.ts
   function buildItemPie(rows) {
     const map = {};
     rows.forEach((r) => {
       if (!r.itemSKU) return;
       if (!map[r.itemSKU]) map[r.itemSKU] = { name: r.itemName || r.itemSKU, cash: 0, qty: 0 };
+      map[r.itemSKU].name = preferItemName(map[r.itemSKU].name, r.itemName);
       map[r.itemSKU].cash += r.cash || 0;
       map[r.itemSKU].qty += r.qty || 0;
     });
